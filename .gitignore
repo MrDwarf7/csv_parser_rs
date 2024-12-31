@@ -3,6 +3,9 @@
 debug/
 target/
 *config.to*
+*idea/
+
+config/*
 
 #data/*
 #!data
