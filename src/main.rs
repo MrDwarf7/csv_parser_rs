@@ -15,10 +15,10 @@ fn main() -> Result<()> {
     let output = config.output.unwrap_or(config::Output::Stdout);
 
     let mut retained_data = RetainedData::default();
-    let processor = Processor::new(config, &mut retained_data)?;
 
+    let processor = Processor::new(config, &mut retained_data)?;
     if let Err(e) = processor.process(&mut retained_data) {
-        eprintln!("Error: {}", e);
+        eprintln!("Error processing: {}", e);
     }
 
     match output {

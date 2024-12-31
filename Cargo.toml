@@ -15,6 +15,7 @@ serde_json = "1.0.134"
 anstyle = "1.0.10"
 
 thiserror = "*"
+rayon = "1.10.0"
 
 [profile.dev.package."*"]
 opt-level = 3

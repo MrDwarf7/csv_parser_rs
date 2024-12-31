@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use rayon::prelude::*;
+
 use crate::config::Config;
 use crate::prelude::*;
 use crate::retained::RetainedData;
@@ -27,35 +29,18 @@ impl Processor {
             .has_headers(true)
             .from_path(self.config.source.as_ref().unwrap())?;
 
+        let handler = &self.handler;
+
         for record_result in rdr.records() {
             let record = record_result?;
 
-            if self.row_passes_filters(&record) {
-                let retained = self.keep_columns(&record);
+            if handler.row_passes_filters(&record) {
+                let retained = handler.keep_columns(&record);
                 retained_data.data.push(retained);
             }
         }
 
         Ok(())
-    }
-
-    fn row_passes_filters(&self, record: &csv::StringRecord) -> bool {
-        for (col_idx, valid_values) in &self.handler.filter_idxs {
-            let val = record.get(*col_idx).unwrap_or("");
-            if !valid_values.contains(&val.to_string()) {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn keep_columns(&self, record: &csv::StringRecord) -> Vec<String> {
-        let mut row_subset = Vec::with_capacity(self.handler.field_idxs.len());
-        for idx in &self.handler.field_idxs {
-            let val = record.get(*idx).unwrap_or("").to_string();
-            row_subset.push(val);
-        }
-        row_subset
     }
 }
 
@@ -90,5 +75,29 @@ impl CsvHandler {
             field_idxs,
             filter_idxs,
         })
+    }
+
+    fn row_passes_filters(&self, record: &csv::StringRecord) -> bool {
+        self.filter_idxs.par_iter().all(|(col_idx, valid_values)| {
+            let val = record.get(*col_idx).unwrap_or("");
+            valid_values.contains(&val.to_string())
+        })
+
+        // for (col_idx, valid_values) in &self.filter_idxs {
+        //     let val = record.get(*col_idx).unwrap_or("");
+        //     if !valid_values.contains(&val.to_string()) {
+        //         return false;
+        //     }
+        // }
+        // true
+    }
+
+    fn keep_columns(&self, record: &csv::StringRecord) -> Vec<String> {
+        let mut row_subset = Vec::with_capacity(self.field_idxs.len());
+        for idx in &self.field_idxs {
+            let val = record.get(*idx).unwrap_or("").to_string();
+            row_subset.push(val);
+        }
+        row_subset
     }
 }
