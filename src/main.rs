@@ -5,14 +5,33 @@ mod prelude;
 mod processor;
 mod retained;
 
+use crate::cli::{Cli, OutputType};
+use crate::config::Config;
 pub(crate) use crate::prelude::*;
 use crate::processor::Processor;
 use crate::retained::RetainedData;
 
+#[derive(Debug)]
+struct OutputData {
+    output_type: OutputType,
+    output_path: PathBuf,
+}
+impl OutputData {
+    fn new(output_type: OutputType, output_path: PathBuf) -> Self {
+        Self {
+            output_type,
+            output_path,
+        }
+    }
+}
+
 fn main() -> Result<()> {
-    let cli = cli::Cli::new();
-    let config = config::Config::new(&cli)?;
-    let output = config.output.unwrap_or(config::Output::Stdout);
+    let cli = Cli::new();
+    let config = Config::new(&cli)?;
+
+    // Store output type for later
+    let output_data = OutputData::new(config.output_type, config.output_path.clone());
+    // let output_type = cli.output_type.unwrap_or(config.output_type);
 
     let mut retained_data = RetainedData::default();
 
@@ -21,12 +40,12 @@ fn main() -> Result<()> {
         eprintln!("Error processing: {}", e);
     }
 
-    match output {
-        config::Output::Stdout => {
+    match output_data.output_type {
+        OutputType::Stdout => {
             retained_data.to_stdout()?;
         }
-        config::Output::Csv => {
-            retained_data.to_csv(std::env::current_dir()?.join(PathBuf::from("output.csv")))?;
+        OutputType::Csv => {
+            retained_data.to_csv(output_data.output_path)?;
         }
     }
 

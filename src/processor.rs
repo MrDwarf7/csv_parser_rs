@@ -23,11 +23,9 @@ impl Processor {
     }
 
     pub fn process(&self, retained_data: &mut RetainedData) -> Result<()> {
-        println!("Processing...");
-
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(true)
-            .from_path(self.config.source.as_ref().unwrap())?;
+            .from_path(&self.config.source)?;
 
         let handler = &self.handler;
 
@@ -48,7 +46,7 @@ impl CsvHandler {
     fn new(config: &Config, retained_data: &mut RetainedData) -> Result<Self> {
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(true)
-            .from_path(config.source.as_ref().unwrap())
+            .from_path(&config.source)
             .map_err(Error::CsvParse)?;
 
         let headers = rdr.headers()?;
@@ -82,14 +80,6 @@ impl CsvHandler {
             let val = record.get(*col_idx).unwrap_or("");
             valid_values.contains(&val.to_string())
         })
-
-        // for (col_idx, valid_values) in &self.filter_idxs {
-        //     let val = record.get(*col_idx).unwrap_or("");
-        //     if !valid_values.contains(&val.to_string()) {
-        //         return false;
-        //     }
-        // }
-        // true
     }
 
     fn keep_columns(&self, record: &csv::StringRecord) -> Vec<String> {
