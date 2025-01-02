@@ -2,12 +2,16 @@
 # cargo-features = ["codegen-backend"]
 
 [package]
-name = "parse_csv"
+name = "csv_parser_rs"
 version = "0.2.0"
 edition = "2021"
+description = "A CLI tool to parse a CSV file and filter out rows based on a set of criteria."
+license = "MIT"
+readme = "README.md"
+
 
 [dependencies]
-clap = { version = "4.5.23", features = ["derive", "env"] }
+clap = { version = "4.5.23", features = ["cargo", "derive", "env"] }
 config = { version = "0.15.4", features = ["preserve_order"] }
 csv = "1.3.1"
 serde = { version = "1.0.217", features = ["derive"] }
@@ -16,6 +20,9 @@ anstyle = "1.0.10"
 
 thiserror = "*"
 rayon = "1.10.0"
+
+[dev-dependencies]
+tempdir = "0.3.7"
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -36,6 +43,7 @@ codegen-units = 1
 debug = "none"
 debug-assertions = false
 incremental = true
+
 # trim-paths = "all"
 #rustflags = ["-Zthreads=16" ]
 
