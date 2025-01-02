@@ -94,6 +94,18 @@ fn config_file(current_dir: PathBuf, def_config: Config) -> Result<PathBuf> {
     Ok(config_file)
 }
 
+trait PathBufExt {
+    fn pop_if_dir(&mut self);
+}
+
+impl PathBufExt for PathBuf {
+    fn pop_if_dir(&mut self) {
+        if self.ends_with("\\") || self.ends_with("/") {
+            self.pop();
+        }
+    }
+}
+
 fn make_output_path(mut user_output: PathBuf, mut user_source: PathBuf) -> Result<PathBuf> {
     if user_output.exists() {
         // 'User is affected by confusion!'
@@ -102,10 +114,10 @@ fn make_output_path(mut user_output: PathBuf, mut user_source: PathBuf) -> Resul
             return Ok(user_output);
         }
 
-        if user_output.ends_with("\\") || user_output.ends_with("/") {
-            user_output.pop();
-        }
-        user_output.push(user_source.file_name().unwrap());
+        user_output.pop_if_dir();
+        user_output.push(user_source.file_name().ok_or_else(|| {
+            Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No file name found in source path"))
+        })?);
     }
 
     if user_output.extension().is_none() {
@@ -114,7 +126,15 @@ fn make_output_path(mut user_output: PathBuf, mut user_source: PathBuf) -> Resul
 
     // Path is a `simple filename` like 'file' or 'file.csv' -- user assumes output will be in the same directory as the source
     if user_output.is_relative() {
-        user_output = user_source.parent().unwrap().join(user_output);
+        user_output = user_source
+            .parent()
+            .ok_or_else(|| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "No parent directory found for source path",
+                ))
+            })?
+            .join(user_output);
     }
 
     Ok(user_output)
