@@ -108,8 +108,8 @@ mod output_retained_tests {
             ..Default::default()
         };
 
-        let stdout = std::io::stdout();
-        let mut handle = stdout.lock();
+        // let stdout = std::io::stdout();
+        // let mut handle = stdout.lock();
 
         data.to_stdout().unwrap();
 

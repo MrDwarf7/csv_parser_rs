@@ -3,7 +3,7 @@ mod core;
 pub use core::Config;
 use std::path::PathBuf;
 
-use crate::cli::OutputType;
+// use crate::cli::OutputType;
 use crate::error::Error;
 
 #[cfg(debug_assertions)]

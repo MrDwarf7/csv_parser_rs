@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // #[error("Generic error handler: {0}")]
@@ -12,10 +10,9 @@ pub enum Error {
 
     #[error("Failed to parse CSV file: {0}")]
     CsvParse(#[from] csv::Error),
-
-    #[error("Failed to parse the Config file and no CLI argumetns were passed")]
-    FailedConfigFileParseWithNoCliArgs,
-
-    #[error("Output filepath already exists: {0}")]
-    OutputPathExists(PathBuf),
+    // #[error("Failed to parse the Config file and no CLI argumetns were passed")]
+    // FailedConfigFileParseWithNoCliArgs,
+    //
+    // #[error("Output filepath already exists: {0}")]
+    // OutputPathExists(PathBuf),
 }
