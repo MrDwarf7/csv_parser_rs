@@ -47,6 +47,7 @@ pub enum OutputType {
     Csv,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for OutputType {
     fn default() -> Self {
         OutputType::Stdout
@@ -55,11 +56,12 @@ impl Default for OutputType {
 
 impl PartialEq for OutputType {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (OutputType::Stdout, OutputType::Stdout) => true,
-            (OutputType::Csv, OutputType::Csv) => true,
-            _ => false,
-        }
+        matches!((self, other), (OutputType::Stdout, OutputType::Stdout) | (OutputType::Csv, OutputType::Csv))
+        // match (self, other) {
+        //     (OutputType::Stdout, OutputType::Stdout) => true,
+        //     (OutputType::Csv, OutputType::Csv) => true,
+        //     _ => false,
+        // }
     }
 }
 
