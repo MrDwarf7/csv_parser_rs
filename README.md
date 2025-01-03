@@ -1,7 +1,5 @@
 # README
 
-# 
-
 ## Overview
 
 This program provides a CLI tool to parse CSV files, filtering out columns & rows based on criteria specified in a configuration file (`config.json`).
@@ -19,20 +17,10 @@ The configuration file (`config.json`) should be formatted as follows:
   "source": "\\windows\\path\\to\\source.csv",
   "output_type": "csv",
   "output_path": "linux_style/path/to/output.csv",
-  "fields": [
-    "Field1",
-    "Field2",
-    "Field3"
-  ],
+  "fields": ["Field1", "Field2", "Field3"],
   "filter_by": {
-    "Field1": [
-      "FilterCriteria1",
-      "FilterCriteria2"
-    ],
-    "Field2": [
-      "FilterCriteria3",
-      "FilterCriteria4"
-    ]
+    "Field1": ["FilterCriteria1", "FilterCriteria2"],
+    "Field2": ["FilterCriteria3", "FilterCriteria4"]
   }
 }
 ```
@@ -53,15 +41,15 @@ The configuration file (`config.json`) should be formatted as follows:
 All commands are also available by running
 
 ```bash
-./parse_csv.rs --help
-# or 
-./parse_csv.rs -h
+./csv_parser_rs --help
+# or
+./csv_parser_rs -h
 ```
 
 You can run the parser using the following command:
 
 ```bash
-./parse_csv.rs [source] [-c config_file] [-t output_type] [-o output_path]
+./csv_parser_rs [source] [-c config_file] [-t output_type] [-o output_path]
 ```
 
 ### Arguments:
@@ -83,13 +71,13 @@ The tool supports two output types:
 To run the parser with a custom configuration file (ie: One that is not in the assumed location):
 
 ```bash
-./parse_csv.rs -c path/to/config.json
+./csv_parser_rs -c path/to/config.json
 ```
 
 To override the configuration using CLI arguments:
 
 ```bash
-./parse_csv.rs path/to/input.csv -t stdout -o path/to/output.csv
+./csv_parser_rs path/to/input.csv -t stdout -o path/to/output.csv
 ```
 
 ## Author
@@ -99,3 +87,4 @@ Blake B.
 ## License
 
 This project is licensed under the MIT License.
+
