@@ -15,7 +15,7 @@ impl RetainedData {
         // Handle the case where user has provided a directory
         // but the directory doesn't exist yet
         if !output_path.exists() {
-            std::fs::create_dir_all(&output_path.parent().unwrap())?;
+            std::fs::create_dir_all(output_path.parent().unwrap())?;
             let mut file = File::create(&output_path)?;
             std::io::Write::write_all(&mut file, b"")?;
         }

@@ -13,6 +13,7 @@ pub fn current_dir() -> crate::Result<PathBuf> {
     Ok(dir.to_path_buf())
 }
 
+#[allow(inactive_code)]
 #[cfg(not(debug_assertions))]
 pub fn current_dir() -> crate::Result<PathBuf> {
     let dir = std::env::current_exe().map_err(Error::Io)?;

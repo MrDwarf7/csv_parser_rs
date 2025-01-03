@@ -43,6 +43,7 @@ impl Processor {
 }
 
 impl CsvHandler {
+    #[allow(clippy::unnecessary_to_owned)] // for (idx, col_name) loop -- contains(&col_name.to_string()) loop
     fn new(config: &Config, retained_data: &mut RetainedData) -> Result<Self> {
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(true)

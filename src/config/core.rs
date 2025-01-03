@@ -35,7 +35,7 @@ impl Config {
             None => Self::try_from(Self::write_as_default()?.to_string().as_str())?,
         };
 
-        Ok(Self::handle_overrides(cli, config)?)
+        Self::handle_overrides(cli, config)
     }
 
     fn handle_overrides(cli: &Cli, mut con: Config) -> Result<Config> {
@@ -62,7 +62,8 @@ impl Config {
         if let Some(output_path) = &cli.output_path {
             if *output_path != con.output_path {
                 // con.output_path = Self::make_output_path(con.source.clone(), output_path.clone())?;
-                con.output_path = make_output_path(output_path.clone(), con.source.clone())?;
+                con.output_path = make_output_path(output_path.clone(), con.source.clone())
+                    .map_err(|e| Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, e)))?;
             }
         }
 
@@ -96,6 +97,8 @@ fn config_file(current_dir: PathBuf, def_config: Config) -> Result<PathBuf> {
 
 trait PathBufExt {
     fn pop_if_dir(&mut self);
+
+    fn pop_if_extension(&mut self) -> Self;
 }
 
 impl PathBufExt for PathBuf {
@@ -104,9 +107,16 @@ impl PathBufExt for PathBuf {
             self.pop();
         }
     }
+
+    fn pop_if_extension(&mut self) -> Self {
+        if self.extension().is_some() {
+            self.set_extension("");
+        }
+        self.clone()
+    }
 }
 
-fn make_output_path(mut user_output: PathBuf, mut user_source: PathBuf) -> Result<PathBuf> {
+fn make_output_path(mut user_output: PathBuf, user_source: PathBuf) -> Result<PathBuf> {
     if user_output.exists() {
         // 'User is affected by confusion!'
         if user_output == user_source {
@@ -115,6 +125,7 @@ fn make_output_path(mut user_output: PathBuf, mut user_source: PathBuf) -> Resul
         }
 
         user_output.pop_if_dir();
+        user_output.pop_if_extension();
         user_output.push(user_source.file_name().ok_or_else(|| {
             Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No file name found in source path"))
         })?);
@@ -237,11 +248,11 @@ mod output_tests {
     }
 
     #[test]
-    #[should_panic]
+    // #[should_panic]
     fn test_make_output_path_existing_file() {
         let temp_dir = TempDir::new("test").unwrap();
 
-        let source_path = temp_dir.path().join("source.txt");
+        let source_path = temp_dir.path().join("source.csv");
         fs::write(&source_path, "test").unwrap();
 
         let output_path = temp_dir.path().join("file.csv");
@@ -249,7 +260,7 @@ mod output_tests {
 
         let result = make_output_path(output_path.clone(), source_path.clone());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("source.txt"));
+        assert_eq!(result.unwrap(), temp_dir.path().join("file").join("source.csv"));
     }
 
     #[test]
