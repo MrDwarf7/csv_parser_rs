@@ -1,10 +1,8 @@
 cargo-features = [ "codegen-backend" ]
-# cargo-features = ["profile-rustflags", "trim-paths"] # required for both trimming paths and setting rustflags
-# cargo-features = ["codegen-backend"]
 
 [package]
 name = "csv_parser_rs"
-version = "0.2.0"
+version = "1.0.0"
 edition = "2021"
 description = "A CLI tool to parse a CSV file and filter out rows based on a set of criteria."
 license = "MIT"
@@ -28,9 +26,6 @@ tempdir = "0.3.7"
 [profile.dev.package."*"]
 opt-level = 3
 codegen-units = 1
-
-# [profile.dev]
-# codegen-backend = "cranelift"
 
 [profile.dev]
 opt-level = 1

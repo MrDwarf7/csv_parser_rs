@@ -1,11 +1,13 @@
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::path::PathBuf;
+
+use config::builder::DefaultState;
 
 use crate::cli::{Cli, OutputType};
 use crate::prelude::{Deserialize, Serialize, *};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     #[serde(rename = "source")]
     pub source: PathBuf,
@@ -16,58 +18,38 @@ pub struct Config {
     #[serde(rename = "output_path", default)]
     pub output_path: PathBuf,
 
+    #[serde(rename = "has_headers", default)]
+    pub has_headers: bool,
+
     pub fields: Vec<String>,
+
+    pub unique_fields: Vec<String>,
 
     pub filter_by: HashMap<String, Vec<String>>,
 }
 
 impl Config {
-    pub fn new(cli: &Cli) -> Result<Self> {
-        let config = match &cli.config_file {
-            Some(user_provided_file) => {
-                if user_provided_file.exists() {
-                    Self::try_from(user_provided_file.to_path_buf())?
-                } else {
-                    eprintln!("Config file provided does not exist, generating a new one...");
-                    Self::write_as_default()?
-                }
+    pub fn new(cli: Cli) -> Result<Self> {
+        let config_from_cli = Self::try_from(cli);
+
+        let mut config = match config_from_cli {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(e);
             }
-            None => Self::try_from(Self::write_as_default()?.to_string().as_str())?,
         };
 
-        Self::handle_overrides(cli, config)
-    }
-
-    fn handle_overrides(cli: &Cli, mut con: Config) -> Result<Config> {
-        // let base_path_dir = crate::config::current_dir()?;
-
-        if let Some(user_provided_config_file) = &cli.config_file {
-            if !user_provided_config_file.exists() {
-                eprintln!("Config file provided does not exist, generating a new one...");
-                // Self::write_as_default()?;
-            }
-            con = Self::try_from(user_provided_config_file.to_path_buf())?;
+        if config.output_path.ends_with(".csv") {
+            Ok(config)
+        } else {
+            config.output_path.set_extension("csv");
+            Ok(config)
         }
 
-        if let Some(output_type) = &cli.output_type {
-            if *output_type != con.output_type {
-                con.output_type = *output_type;
-            }
-        }
-
-        if let Some(source) = &cli.source {
-            con.source = source.clone();
-        }
-
-        if let Some(output_path) = &cli.output_path {
-            if *output_path != con.output_path {
-                // con.output_path = Self::make_output_path(con.source.clone(), output_path.clone())?;
-                con.output_path = make_output_path(output_path.clone(), con.source.clone())
-                    .map_err(|e| Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, e)))?;
-            }
-        }
-
-        Ok(con)
+        // let output_path = make_output_path(finished_config.output_path.clone(), finished_config.source.clone())?;
+        // println!("Config::new:: output_path: {:#?}", &output_path);
+        // finished_config.output_path = output_path;
+        // Ok(finished_config)
     }
 
     fn write_as_default() -> Result<Self> {
@@ -95,72 +77,77 @@ fn config_file(current_dir: PathBuf, def_config: Config) -> Result<PathBuf> {
     Ok(config_file)
 }
 
-trait PathBufExt {
-    fn pop_if_dir(&mut self);
-
-    fn pop_if_extension(&mut self) -> Self;
-}
-
-impl PathBufExt for PathBuf {
-    fn pop_if_dir(&mut self) {
-        if self.ends_with("\\") || self.ends_with("/") {
-            self.pop();
-        }
-    }
-
-    fn pop_if_extension(&mut self) -> Self {
-        if self.extension().is_some() {
-            self.set_extension("");
-        }
-        self.clone()
-    }
-}
-
-fn make_output_path(mut user_output: PathBuf, user_source: PathBuf) -> Result<PathBuf> {
-    if user_output.exists() {
-        // 'User is affected by confusion!'
-        if user_output == user_source {
-            user_output.set_extension("csv");
-            return Ok(user_output);
-        }
-
-        user_output.pop_if_dir();
-        user_output.pop_if_extension();
-        user_output.push(user_source.file_name().ok_or_else(|| {
-            Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No file name found in source path"))
-        })?);
-    }
-
-    if user_output.extension().is_none() {
-        user_output.set_extension("csv");
-    }
-
-    // Path is a `simple filename` like 'file' or 'file.csv' -- user assumes output will be in the same directory as the source
-    if user_output.is_relative() {
-        user_output = user_source
-            .parent()
-            .ok_or_else(|| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    "No parent directory found for source path",
-                ))
-            })?
-            .join(user_output);
-    }
-
-    Ok(user_output)
-}
-
 impl TryFrom<PathBuf> for Config {
     type Error = Error;
 
     fn try_from(path: PathBuf) -> Result<Self> {
         let builder = config::Config::builder().add_source(config::File::from(path));
-        let config = builder.build().map_err(Error::ConfigParse)?;
+        let config = builder
+            .build()
+            .map_err(Error::ConfigParse)
+            .expect("Config::try_from:: builder.build()");
         let config: Config = config.try_deserialize().map_err(Error::ConfigParse)?;
 
         Ok(config)
     }
+}
+
+impl TryFrom<Cli> for Config {
+    type Error = Error;
+
+    fn try_from(cli: Cli) -> Result<Self> {
+        let default_config_base = Config::default();
+
+        let builder = config::Config::builder()
+            .add_source(config::Config::try_from(&default_config_base).map_err(Error::ConfigParse)?);
+
+        let mut builder = cli_valid(builder, &cli)?;
+
+        let config_file = config_file(crate::config::current_dir()?, Config::default())?;
+        // and finally - we attempt to parse the config file
+
+        if let Some(cli_config_file) = &cli.config_file {
+            builder = builder.set_override("config_file", cli_config_file.to_str().unwrap())?;
+            builder = builder.add_source(config::File::from(cli_config_file.clone()));
+        } else {
+            builder = builder.set_override("config_file", config_file.to_str().unwrap())?;
+            builder = builder.add_source(config::File::from(config_file));
+        }
+
+        let config = builder.build().map_err(Error::ConfigParse)?;
+        let mut config: Config = config.try_deserialize().map_err(Error::ConfigParse)?;
+
+        // remove any keys & values that start with __ as these are the 'default' filler keys
+        config.fields.retain(|f| !f.starts_with("__"));
+        config.filter_by.retain(|k, _| !k.starts_with("__"));
+
+        Ok(config)
+    }
+}
+
+fn cli_valid(builder: config::ConfigBuilder<DefaultState>, cli: &Cli) -> Result<config::ConfigBuilder<DefaultState>> {
+    let mut builder = builder;
+    // handling anything that came in via the CLI
+    if let Some(source) = &cli.source {
+        builder = builder.set_override(
+            "source",
+            source
+                .to_str()
+                .ok_or_else(|| Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No source path found")))?,
+        )?;
+    }
+    if let Some(output_type) = &cli.output_type {
+        builder = builder.set_override("output_type", output_type.to_string().as_str())?
+    }
+    if let Some(output_path) = &cli.output_path {
+        builder = builder.set_override(
+            "output_path",
+            output_path
+                .to_str()
+                .ok_or_else(|| Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No output path found")))?,
+        )?;
+    };
+    Ok(builder)
 }
 
 impl Default for Config {
@@ -183,118 +170,14 @@ impl TryFrom<&str> for Config {
 }
 
 impl Display for Config {
+    #[allow(clippy::write_with_newline)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?;
-        write!(f, "{}", s)
+        write!(f, "{}", serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?)
     }
 }
 
-#[cfg(test)]
-mod output_tests {
-    use std::fs;
-
-    use tempdir::TempDir;
-
-    use super::*;
-
-    #[test]
-    fn test_make_output_path_absolute_server_path() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("\\some\\server\\path\\here\\file"); //This will likely fail on non-windows systems
-        let result = make_output_path(output_path.clone(), source_path);
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), PathBuf::from("C:\\some\\server\\path\\here\\file.csv"));
-    }
-
-    #[test]
-    fn test_make_output_path_absolute_server_path_csv() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("C:\\some\\server\\path\\here\\file.csv"); //This will likely fail on non-windows systems
-        let result = make_output_path(output_path.clone(), source_path);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), PathBuf::from("C:\\some\\server\\path\\here\\file.csv"));
-    }
-
-    #[test]
-    fn test_make_output_path_relative_path() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("file");
-        let result = make_output_path(output_path, source_path.clone());
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("file.csv"));
-    }
-
-    #[test]
-    fn test_make_output_path_relative_path_csv() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("file.csv");
-        let result = make_output_path(output_path, source_path.clone());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("file.csv"));
-    }
-
-    #[test]
-    // #[should_panic]
-    fn test_make_output_path_existing_file() {
-        let temp_dir = TempDir::new("test").unwrap();
-
-        let source_path = temp_dir.path().join("source.csv");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = temp_dir.path().join("file.csv");
-        fs::write(&output_path, "test").unwrap();
-
-        let result = make_output_path(output_path.clone(), source_path.clone());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("file").join("source.csv"));
-    }
-
-    #[test]
-    fn test_make_output_path_absolute_server_path_txt() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("/some/server/path/here/file.txt"); //Using a more portable path format
-        let result = make_output_path(output_path, source_path);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), PathBuf::from("C:/some/server/path/here/file.txt"));
-    }
-
-    #[test]
-    fn test_make_output_path_relative_path_txt() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = PathBuf::from("file.txt");
-        let result = make_output_path(output_path, source_path.clone());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("file.txt"));
-    }
-    #[test]
-    fn test_make_output_path_same_as_source() {
-        let temp_dir = TempDir::new("test").unwrap();
-        let source_path = temp_dir.path().join("source.txt");
-        fs::write(&source_path, "test").unwrap();
-
-        let output_path = source_path.clone();
-        let result = make_output_path(output_path, source_path.clone());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path().join("source.csv"));
+impl Debug for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?)
     }
 }

@@ -7,8 +7,21 @@ use crate::prelude::*;
 use crate::retained::RetainedData;
 
 pub struct Processor {
-    config: Config,
+    pub config: Config,
     handler: CsvHandler,
+}
+
+impl Processor {
+    pub(crate) fn deduplicate(&self, retained_data: &mut RetainedData) {
+        let mut unique_values = HashSet::new();
+        for field in &self.config.unique_fields {
+            let field_idx_in_existing = retained_data.retained_headers.iter().position(|x| x == field).unwrap();
+            retained_data.data.retain(|row| {
+                let val = row[field_idx_in_existing].clone();
+                unique_values.insert(val)
+            });
+        }
+    }
 }
 
 pub struct CsvHandler {
@@ -24,7 +37,7 @@ impl Processor {
 
     pub fn process(&self, retained_data: &mut RetainedData) -> Result<()> {
         let mut rdr = csv::ReaderBuilder::new()
-            .has_headers(true)
+            .has_headers(self.config.has_headers)
             .from_path(&self.config.source)?;
 
         let handler = &self.handler;
@@ -46,9 +59,11 @@ impl CsvHandler {
     #[allow(clippy::unnecessary_to_owned)] // for (idx, col_name) loop -- contains(&col_name.to_string()) loop
     fn new(config: &Config, retained_data: &mut RetainedData) -> Result<Self> {
         let mut rdr = csv::ReaderBuilder::new()
-            .has_headers(true)
+            .has_headers(config.has_headers)
             .from_path(&config.source)
-            .map_err(Error::CsvParse)?;
+            .expect("Failed to read CSV file from source provided");
+        // .map_err(|e| Err(Error::CsvReader(format!("Failed to read CSV file: {}", e))))
+        // .expect("Failed to read CSV file");
 
         let headers = rdr.headers()?;
         retained_data.all_headers = headers.iter().map(|s| s.to_string()).collect();

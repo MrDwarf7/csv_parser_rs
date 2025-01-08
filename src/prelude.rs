@@ -13,27 +13,33 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 pub struct W<T>(pub T);
 
+pub const CLI_ENV_PREFIX: &str = "CSV_CLI";
 pub const DEFAULT_CONFIG_DIR: &str = "config";
 pub const DEFAULT_CONFIG_FILE: &str = "config.json";
 pub const DEFAULT_FILLER: &str = r#"
 {
   "source": "some\\winodws\\path\\to\\file.csv",
+  "output_type": "stdout",
+  "output_path": "some\\windows\\path\\to\\output.csv",
+  "has_headers": true,
   "fields": [
-    "fields_to_retain_always",
-    "fields_to_retain_always2",
-    "fields_to_retain_always3",
-    "fields_to_retain_always4"
+    "__fields_to_retain_always",
+    "__fields_to_retain_always2",
+    "__fields_to_retain_always3",
+    "__fields_to_retain_always4"
+  ],
+  "unique_fields": [
   ],
   "filter_by": {
-    "fields_that_need_filtering_for_values": [
-      "value_of_field_to_filter_for",
-      "value_of_field_to_filter_for2",
-      "value_of_field_to_filter_for3"
+    "__fields_that_need_filtering_for_values": [
+      "__value_of_field_to_filter_for",
+      "__value_of_field_to_filter_for2",
+      "__value_of_field_to_filter_for3"
     ],
-    "fields_that_need_filtering_for_values_two": [
-      "value_of_field_to_filter_for",
-      "value_of_field_to_filter_for2",
-      "value_of_field_to_filter_for3"
+    "__fields_that_need_filtering_for_values_two": [
+      "__value_of_field_to_filter_for",
+      "__value_of_field_to_filter_for2",
+      "__value_of_field_to_filter_for3"
     ]
   }
 }

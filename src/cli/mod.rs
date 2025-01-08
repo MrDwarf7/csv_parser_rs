@@ -1,9 +1,11 @@
+use std::ffi::OsStr;
+use std::fmt::{Debug, Display};
 use std::ops::Not;
 use std::path::PathBuf;
 
 use clap::{command, Parser, ValueEnum};
 
-use crate::prelude::{Deserialize, Serialize};
+use crate::prelude::{Deserialize, Serialize, *};
 
 #[derive(Debug, Parser, Clone)]
 #[command(
@@ -36,7 +38,7 @@ pub struct Cli {
     pub output_path: Option<PathBuf>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, ValueEnum)]
+#[derive(Serialize, Deserialize, Clone, Copy, ValueEnum)]
 pub enum OutputType {
     #[value(name = "stdout", alias = "stdout", alias = "Stdout", alias = "0")]
     #[serde(rename = "stdout")]
@@ -45,6 +47,42 @@ pub enum OutputType {
     #[value(name = "csv", alias = "csv", alias = "Csv", alias = "1")]
     #[serde(rename = "csv")]
     Csv,
+}
+
+impl Debug for OutputType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputType::Stdout => write!(f, "OutputType::Stdout"),
+            OutputType::Csv => write!(f, "OutputType::Csv"),
+        }
+    }
+}
+
+impl Display for OutputType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputType::Stdout => write!(f, "stdout"),
+            OutputType::Csv => write!(f, "csv"),
+        }
+    }
+}
+
+impl From<OutputType> for String {
+    fn from(output_type: OutputType) -> Self {
+        match output_type {
+            OutputType::Stdout => "stdout".to_string(),
+            OutputType::Csv => "csv".to_string(),
+        }
+    }
+}
+
+impl AsRef<OsStr> for OutputType {
+    fn as_ref(&self) -> &OsStr {
+        match self {
+            OutputType::Stdout => OsStr::new("stdout"),
+            OutputType::Csv => OsStr::new("csv"),
+        }
+    }
 }
 
 #[allow(clippy::derivable_impls)]
@@ -80,7 +118,46 @@ impl Not for OutputType {
 
 impl Cli {
     pub fn new() -> Self {
-        Self::parse()
+        let s = Self::parse();
+        s.to_env()
+            .unwrap_or_else(|e| eprintln!("Error setting environment variables: {}", e));
+        s
+    }
+}
+
+pub trait ToEnv {
+    fn to_env(&self) -> Result<()>;
+}
+
+impl ToEnv for Cli {
+    fn to_env(&self) -> Result<()> {
+        let (source, config_file, output_type, output_path) =
+            (self.source.as_ref(), self.config_file.as_ref(), self.output_type.as_ref(), self.output_path.as_ref());
+
+        let prefix = &CLI_ENV_PREFIX;
+
+        if let Some(source) = source {
+            let source_name = format!("{}_{}", prefix, "SOURCE");
+            std::env::set_var(&source_name, source);
+        }
+
+        if let Some(config_file) = config_file {
+            let config_file_name = format!("{}_{}", prefix, "CONFIG_FILE");
+            std::env::set_var(&config_file_name, config_file);
+        }
+
+        if let Some(output_type) = output_type {
+            let output_type_name = format!("{}_{}", prefix, "OUTPUT_TYPE");
+            std::env::set_var(&output_type_name, output_type);
+            let var = std::env::var(&output_type_name).unwrap();
+        }
+
+        if let Some(output_path) = output_path {
+            let output_path_name = format!("{}_{}", prefix, "OUTPUT_PATH");
+            std::env::set_var(&output_path_name, output_path);
+        }
+
+        Ok(())
     }
 }
 

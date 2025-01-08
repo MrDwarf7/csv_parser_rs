@@ -27,7 +27,8 @@ impl OutputData {
 
 fn main() -> Result<()> {
     let cli = Cli::new();
-    let config = Config::new(&cli)?;
+    let config = Config::new(cli)?;
+    println!("MAIN:: Config: {:#?}", config);
 
     // Store output type for later
     let output_data = OutputData::new(config.output_type, config.output_path.clone());
@@ -38,6 +39,10 @@ fn main() -> Result<()> {
     let processor = Processor::new(config, &mut retained_data)?;
     if let Err(e) = processor.process(&mut retained_data) {
         eprintln!("Error processing: {}", e);
+    }
+
+    if !&processor.config.unique_fields.is_empty() {
+        processor.deduplicate(&mut retained_data);
     }
 
     match output_data.output_type {
