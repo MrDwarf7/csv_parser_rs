@@ -25,7 +25,7 @@ pub struct Config {
 
     pub unique_fields: Vec<String>,
 
-    pub filter_by: HashMap<String, Vec<String>>,
+    pub include_cols_with: HashMap<String, Vec<String>>,
 }
 
 impl Config {
@@ -106,7 +106,7 @@ impl TryFrom<Cli> for Config {
 
         // remove any keys & values that start with __ as these are the 'default' filler keys
         config.fields.retain(|f| !f.starts_with("__"));
-        config.filter_by.retain(|k, _| !k.starts_with("__"));
+        config.include_cols_with.retain(|k, _| !k.starts_with("__"));
 
         Ok(config)
     }

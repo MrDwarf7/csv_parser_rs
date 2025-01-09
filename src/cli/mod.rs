@@ -34,7 +34,7 @@ pub struct Cli {
     #[arg(name = "output_type", short = 't', long = "output_type", help = "The output type to use.", required = false, value_hint = clap::ValueHint::Other, value_enum,)]
     pub output_type: Option<OutputType>,
 
-    #[arg(name = "output_path", short = 'o', long = "output", help = "The output file path to use.", required = false, value_hint = clap::ValueHint::FilePath)]
+    #[arg(name = "output_path", short = 'o', long = "output_path", help = "The output file path to use.", required = false, value_hint = clap::ValueHint::FilePath)]
     pub output_path: Option<PathBuf>,
 }
 
@@ -149,7 +149,7 @@ impl ToEnv for Cli {
         if let Some(output_type) = output_type {
             let output_type_name = format!("{}_{}", prefix, "OUTPUT_TYPE");
             std::env::set_var(&output_type_name, output_type);
-            let var = std::env::var(&output_type_name).unwrap();
+            std::env::var(&output_type_name).unwrap();
         }
 
         if let Some(output_path) = output_path {

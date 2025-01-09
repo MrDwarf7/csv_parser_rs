@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::path::{Path};
 
 use crate::prelude::*;
 
@@ -11,12 +12,15 @@ pub struct RetainedData {
 
 impl RetainedData {
     #[allow(dead_code)]
-    pub fn to_csv(&self, output_path: PathBuf) -> Result<()> {
+    pub fn to_csv(&self, output_path: impl AsRef<Path>) -> Result<()> {
+        let printable = output_path.as_ref().display();
+        let output_path = output_path.as_ref();
+
         // Handle the case where user has provided a directory
         // but the directory doesn't exist yet
         if !output_path.exists() {
             std::fs::create_dir_all(output_path.parent().unwrap())?;
-            let mut file = File::create(&output_path)?;
+            let mut file = File::create(output_path)?;
             std::io::Write::write_all(&mut file, b"")?;
         }
 
@@ -24,6 +28,8 @@ impl RetainedData {
 
         self.write(&mut wtr)?;
         wtr.flush()?;
+
+        println!("Output written to: {}", printable);
 
         Ok(())
     }

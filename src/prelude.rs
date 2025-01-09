@@ -30,7 +30,7 @@ pub const DEFAULT_FILLER: &str = r#"
   ],
   "unique_fields": [
   ],
-  "filter_by": {
+  "include_cols_with": {
     "__fields_that_need_filtering_for_values": [
       "__value_of_field_to_filter_for",
       "__value_of_field_to_filter_for2",
