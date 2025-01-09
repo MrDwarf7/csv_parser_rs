@@ -62,8 +62,6 @@ impl CsvHandler {
             .has_headers(config.has_headers)
             .from_path(&config.source)
             .expect("Failed to read CSV file from source provided");
-        // .map_err(|e| Err(Error::CsvReader(format!("Failed to read CSV file: {}", e))))
-        // .expect("Failed to read CSV file");
 
         let headers = rdr.headers()?;
         retained_data.all_headers = headers.iter().map(|s| s.to_string()).collect();

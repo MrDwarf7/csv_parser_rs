@@ -45,19 +45,6 @@ impl Config {
             config.output_path.set_extension("csv");
             Ok(config)
         }
-
-        // let output_path = make_output_path(finished_config.output_path.clone(), finished_config.source.clone())?;
-        // println!("Config::new:: output_path: {:#?}", &output_path);
-        // finished_config.output_path = output_path;
-        // Ok(finished_config)
-    }
-
-    fn write_as_default() -> Result<Self> {
-        let def = Self::default();
-        let current_dir = crate::config::current_dir()?;
-        let config_filepath = config_file(current_dir, def.clone())?;
-        std::fs::write(&config_filepath, def.to_string())?;
-        Ok(def)
     }
 }
 

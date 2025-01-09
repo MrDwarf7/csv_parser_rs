@@ -44,11 +44,6 @@ impl RetainedData {
         let mut wtr = csv::Writer::from_writer(std::io::stderr());
 
         self.write(&mut wtr)?;
-        // wtr.write_record(&self.retained_headers)?;
-        // for row in self.data.iter() {
-        //     wtr.write_record(row)?;
-        // }
-        // wtr.flush()?;
         Ok(())
     }
 }

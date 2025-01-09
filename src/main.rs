@@ -32,7 +32,6 @@ fn main() -> Result<()> {
 
     // Store output type for later
     let output_data = OutputData::new(config.output_type, config.output_path.clone());
-    // let output_type = cli.output_type.unwrap_or(config.output_type);
 
     let mut retained_data = RetainedData::default();
 

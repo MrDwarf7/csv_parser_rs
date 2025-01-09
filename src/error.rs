@@ -1,7 +1,5 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    // #[error("Generic error handler: {0}")]
-    // Generic(String),
     #[error("Failed due to IO Error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -10,17 +8,4 @@ pub enum Error {
 
     #[error("Failed to parse CSV file: {0}")]
     CsvParse(#[from] csv::Error),
-
-    // #[error("Failed to parse CSV file: {0}")]
-    // CsvReader(String),
-    // #[error("Failed to parse the Config file and no CLI argumetns were passed")]
-    // FailedConfigFileParseWithNoCliArgs,
-    //
-    // #[error("Output filepath already exists: {0}")]
-    // OutputPathExists(PathBuf),
-    #[error("Failed to iter environment variables: {0}")]
-    EnvVar(String),
-
-    #[error("Oh no! Something went wrong: {0}")]
-    Generic(String),
 }
