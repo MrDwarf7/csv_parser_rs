@@ -7,6 +7,26 @@ use clap::{command, Parser, ValueEnum};
 
 use crate::prelude::{Deserialize, Serialize, *};
 
+/// Command Line Interface (CLI) structure for the `parse_csv_rs` tool.
+///
+/// This structure defines the CLI arguments and options for the `parse_csv_rs` tool, which is designed
+/// to parse a CSV file and filter out rows based on a set of criteria. The criteria can be defined via
+/// a configuration file or overridden via CLI arguments. If CLI arguments are provided, they will always
+/// override the values in the configuration file.
+///
+/// # Fields
+///
+/// * `source` - The source CSV file to parse. This argument is optional and overrides the source file in the configuration file if provided.
+/// * `config_file` - The configuration file to use. This option is optional and overrides the default configuration file.
+/// * `output_type` - The output type to use. This option is optional and specifies the format of the output.
+/// * `output_path` - The output file path to use. This option is optional and specifies the path where the output file will be saved.
+///
+/// # Example
+///
+/// ```rust
+/// let cli = Cli::parse();
+/// println!("{:?}", cli);
+/// ```
 #[derive(Debug, Parser, Clone)]
 #[command(
     name = "parse_csv_rs",
@@ -38,6 +58,24 @@ pub struct Cli {
     pub output_path: Option<PathBuf>,
 }
 
+/// Represents the output type for the `parse_csv_rs` tool.
+///
+/// This enum defines the possible output types for the tool, which can be either `Stdout` or `Csv`.
+/// It supports serialization and deserialization using `serde`, and can be used as a value enum in CLI arguments.
+///
+/// # Variants
+///
+/// * `Stdout` - Represents output to the standard output.
+/// * `Csv` - Represents output to a CSV file.
+///
+/// # Example
+///
+/// ```rust
+/// use crate::OutputType;
+///
+/// let output_type = OutputType::Stdout;
+/// println!("{}", output_type); // prints "stdout"
+/// ```
 #[derive(Serialize, Deserialize, Clone, Copy, ValueEnum)]
 pub enum OutputType {
     #[value(name = "stdout", alias = "stdout", alias = "Stdout", alias = "0")]
@@ -50,6 +88,24 @@ pub enum OutputType {
 }
 
 impl Debug for OutputType {
+    /// Formats the `OutputType` for debugging purposes.
+    ///
+    /// This implementation provides a human-readable representation of the `OutputType` variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A mutable reference to a `Formatter`.
+    ///
+    /// # Returns
+    ///
+    /// * `std::fmt::Result` - Returns the result of the write operation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type = OutputType::Stdout;
+    /// println!("{:?}", output_type); // prints "OutputType::Stdout"
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OutputType::Stdout => write!(f, "OutputType::Stdout"),
@@ -59,6 +115,24 @@ impl Debug for OutputType {
 }
 
 impl Display for OutputType {
+    /// Formats the `OutputType` as a string.
+    ///
+    /// This implementation provides a human-readable representation of the `OutputType` variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A mutable reference to a `Formatter`.
+    ///
+    /// # Returns
+    ///
+    /// * `std::fmt::Result` - Returns the result of the write operation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type = OutputType::Stdout;
+    /// println!("{}", output_type); // prints "stdout"
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OutputType::Stdout => write!(f, "stdout"),
@@ -68,6 +142,25 @@ impl Display for OutputType {
 }
 
 impl From<OutputType> for String {
+    /// Converts the `OutputType` to a `String`.
+    ///
+    /// This implementation provides a string representation of the `OutputType` variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `output_type` - The `OutputType` instance to convert.
+    ///
+    /// # Returns
+    ///
+    /// * `String` - Returns the string representation of the `OutputType`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type = OutputType::Stdout;
+    /// let output_type_str: String = output_type.into();
+    /// println!("{}", output_type_str); // prints "stdout"
+    /// ```
     fn from(output_type: OutputType) -> Self {
         match output_type {
             OutputType::Stdout => "stdout".to_string(),
@@ -77,6 +170,25 @@ impl From<OutputType> for String {
 }
 
 impl AsRef<OsStr> for OutputType {
+    /// Converts the `OutputType` to an `OsStr`.
+    ///
+    /// This implementation provides an OS string representation of the `OutputType` variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The `OutputType` instance to convert.
+    ///
+    /// # Returns
+    ///
+    /// * `&OsStr` - Returns the OS string representation of the `OutputType`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type = OutputType::Stdout;
+    /// let output_type_os_str: &OsStr = output_type.as_ref();
+    /// println!("{:?}", output_type_os_str); // prints "stdout"
+    /// ```
     fn as_ref(&self) -> &OsStr {
         match self {
             OutputType::Stdout => OsStr::new("stdout"),
@@ -87,19 +199,47 @@ impl AsRef<OsStr> for OutputType {
 
 #[allow(clippy::derivable_impls)]
 impl Default for OutputType {
+    /// Provides a default `OutputType` instance.
+    ///
+    /// This implementation returns `OutputType::Stdout` as the default value.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - Returns `OutputType::Stdout` as the default value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let default_output_type = OutputType::default();
+    /// asser
     fn default() -> Self {
         OutputType::Stdout
     }
 }
 
 impl PartialEq for OutputType {
+    /// Compares two `OutputType` instances for equality.
+    ///
+    /// This implementation checks if both instances are either `OutputType::Stdout` or `OutputType::Csv`.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The first `OutputType` instance.
+    /// * `other` - The second `OutputType` instance to compare with.
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - Returns `true` if both instances are equal, otherwise `false`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type1 = OutputType::Stdout;
+    /// let output_type2 = OutputType::Stdout;
+    /// assert_eq!(output_type1, output_type2);
+    /// ```
     fn eq(&self, other: &Self) -> bool {
         matches!((self, other), (OutputType::Stdout, OutputType::Stdout) | (OutputType::Csv, OutputType::Csv))
-        // match (self, other) {
-        //     (OutputType::Stdout, OutputType::Stdout) => true,
-        //     (OutputType::Csv, OutputType::Csv) => true,
-        //     _ => false,
-        // }
     }
 }
 
@@ -108,6 +248,21 @@ impl Eq for OutputType {}
 impl Not for OutputType {
     type Output = OutputType;
 
+    /// Implements the logical NOT operator for `OutputType`.
+    ///
+    /// This implementation toggles between `OutputType::Stdout` and `OutputType::Csv`.
+    ///
+    /// # Returns
+    ///
+    /// * `OutputType` - Returns `OutputType::Csv` if the current instance is `OutputType::Stdout`, and vice versa.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let output_type = OutputType::Stdout;
+    /// let toggled_output_type = !output_type;
+    /// assert_eq!(toggled_output_type, OutputType::Csv);
+    /// ```
     fn not(self) -> Self::Output {
         match self {
             OutputType::Stdout => OutputType::Csv,
@@ -117,19 +272,79 @@ impl Not for OutputType {
 }
 
 impl Cli {
+    /// Creates a new `Cli` instance by parsing the command-line arguments and setting environment variables.
+    ///
+    /// This implementation parses the CLI arguments and attempts to set the corresponding environment variables.
+    /// If setting the environment variables fails, an error message is printed.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - Returns a new `Cli` instance.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let cli = Cli::new();
+    /// println!("{:?}", cli);
+    /// ```
     pub fn new() -> Self {
         let s = Self::parse();
         s.to_env()
-            .unwrap_or_else(|e| eprintln!("Error setting environment variables: {}", e));
+            .unwrap_or_else(|e| eprintln!("Error setting environment variables: {e}"));
         s
     }
 }
 
+impl Default for Cli {
+    /// Provides a default `Cli` instance.
+    ///
+    /// This implementation creates a new `Cli` instance by calling the `new` method.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - Returns a default `Cli` instance.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let default_cli = Cli::default();
+    /// println!("{:?}", default_cli);
+    /// ```
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub trait ToEnv {
+    /// Trait to set environment variables based on the CLI arguments.
+    ///
+    /// This trait defines a method to set environment variables using the values provided in the CLI arguments.
+    ///
+    /// # Methods
+    ///
+    /// * `to_env` - Sets the environment variables based on the CLI arguments.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let cli = Cli::parse();
+    /// cli.to_env().expect("Failed to set environment variables");
+    /// ```
     fn to_env(&self) -> Result<()>;
 }
 
 impl ToEnv for Cli {
+    /// Implementation of the `ToEnv` trait for the `Cli` struct.
+    ///
+    /// This implementation sets environment variables using the values provided in the `Cli` struct.
+    /// It sets the environment variables for the source file, configuration file, output type, and output path.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let cli = Cli::parse();
+    /// cli.to_env().expect("Failed to set environment variables");
+    /// ```
     fn to_env(&self) -> Result<()> {
         let (source, config_file, output_type, output_path) =
             (self.source.as_ref(), self.config_file.as_ref(), self.output_type.as_ref(), self.output_path.as_ref());
@@ -161,6 +376,20 @@ impl ToEnv for Cli {
     }
 }
 
+/// Returns a set of custom styles for the CLI tool.
+///
+/// This function defines and returns a set of styles to be used in the CLI tool's help and error messages.
+/// The styles include formatting for usage, headers, literals, invalid inputs, errors, valid inputs, and placeholders.
+///
+/// # Returns
+///
+/// * `clap::builder::Styles` - Returns a `Styles` instance with the defined custom styles.
+///
+/// # Example
+///
+/// ```rust
+/// let styles = get_styles();
+/// ```
 pub fn get_styles() -> clap::builder::Styles {
     clap::builder::Styles::styled()
         .usage(
