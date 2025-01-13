@@ -18,7 +18,7 @@ DIST_FOLDER = "${ROOT}/_${OUTPUT_BIN_NAME}_dist"
 # the FULL path from root WITH EXE - root / target /current_profile / the_bin_name.EXE
 FOLDER_BIN_EXE = "${ROOT}/target/${PROFILE}/${BIN_NAME}.exe"
 # All the above vars
-ENV_VARS = {script = [
+ENV_VARS = { script = [
     "echo ${BREAKER}\n",
     "echo PROFILE: ${PROFILE}\n",
     "echo VERSION: ${VERSION}\n",
@@ -32,7 +32,7 @@ ENV_VARS = {script = [
 
 [tasks.print_all]
 command = "echo"
-args = [ "${ENV_VARS}" ]
+args = ["${ENV_VARS}"]
 
 # Core bare. min
 [tasks.format]
@@ -53,6 +53,10 @@ command = "cargo"
 args = ["build", "--release"]
 dependencies = ["format"]
 # Core bare. min
+
+[tasks.docs]
+command = "cargo"
+args = ["doc"]
 
 # Tests
 [tasks.test]
@@ -89,6 +93,10 @@ args = ["test", "--workspace"]
 
 # DIST STUFF
 # -----------------------------------------------------------------------------
+[tasks.clear_dist_if_exist]
+command = "rm"
+args = ["-rf", "${DIST_FOLDER}/", "-ErrorAction", "SilentlyContinue"]
+
 [tasks.create_dist]
 command = "mkdir"
 args = ["-p", "${DIST_FOLDER}/"]
@@ -120,6 +128,7 @@ dependencies = [
     "copy_release_to_dist",
     "copy_readme_to_dist",
     "create_dist",
+    "docs",
 ]
 
 # -----------------------------------------------------------------------------
