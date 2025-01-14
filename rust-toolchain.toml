@@ -1,11 +1,13 @@
 [toolchain]
 channel = "nightly"
-components = [ 
+targets = ["x86_64-pc-windows-msvc"]
+#targets = ["x86_64-pc-windows-gnu"]
+components = [
     "rustfmt",
     "rust-analyzer",
     "clippy",
     "cargo",
-    # "llvm-tools",
     "rustc-codegen-cranelift",
-    # "miri" 
+    # "llvm-tools",
+    # "miri"
 ]
