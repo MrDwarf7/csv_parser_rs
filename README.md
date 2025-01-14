@@ -7,10 +7,13 @@ Users can optionally override settings using command-line arguments, ensuring fl
 
 ## Configuration
 
-By default, the program will search for a config directory & config file in the following locations:
-`$ROOT/config` & `$ROOT/config/config.json` respectively. (Where $ROOT is the directory the binary resides in).
+> In the follow example(s) `$ROOT` is the directory the binary/`.exe` resides in.
 
-If the config folder or the config file is not found, the program will generate dummy config file with similar struct and values to the below snippet.
+By default, the program will search for a config directory & config file in the following locations:
+`$ROOT/config` & `$ROOT/config/config.json` respectively.
+
+If the config folder or the config file is not found,
+the program will generate a dummy config file with similar struct and values to the below snippet in a `config` directory in the root of the binary.
 
 The configuration file (`config.json`) should be formatted as follows:
 
@@ -56,7 +59,8 @@ The configuration file (`config.json`) should be formatted as follows:
 
 ## Command Line Interface
 
-All commands are also available by running
+Most commands are also implemented as CLI arguments.
+You can view the help message using the following command:
 
 ```powershell
 .\csv_parser_rs --help
@@ -98,10 +102,41 @@ To override the configuration using CLI arguments:
 .\csv_parser_rs path\to\input.csv -t stdout -o path\to\output.csv
 ```
 
-## Author
+## FAQ's
 
-Blake B.
+### What happens to duplicates exactly?
 
-## License
+The program will only include the first occurrence of a row with a unique field in the output.
+That's to say - the first row with a unique field will be included when reading from row/line 1 to the last row/line that is populated.
+
+#### Weird caveat:
+
+Technically - a blank cell is a unique value (Regardless of if it actually has content or not,
+or a space etc.) - because of this it's important to understand that if you're filtering (via `unique_fields` )
+on a column that has blank cells in it, the results will follow the same logic - ie: only a single blank cell will be included in the output.
+
+### What happens if the unique column contains blank values?
+
+The program will only include the first occurrence of a row with a unique field in the output.
+
+### What happens if `has_headers` is set to `false`?
+
+If `has_headers` is set to `false`, the program will treat the first row as a data row and include it in the output.
+This includes the ability to consider it a filterable row.
+
+### What happens if the config is not provided/missing a field/malformed?
+
+If the directory & file are missing entirely, the program will generate a dummy config directory and file in the assumed location.
+If the file is missing a field, the program will generate an error message and exit, no file operations will be performed at all.
+
+### Why Rust?
+
+Rust is a systems programming language that provides memory safety, zero-cost abstractions, and concurrency.
+
+# Author
+
+## Blake B.
+
+#### License
 
 This project is licensed under the MIT License.
