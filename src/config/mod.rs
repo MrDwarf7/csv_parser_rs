@@ -1,4 +1,5 @@
 mod core;
+mod file_path_finds;
 
 pub use core::Config;
 use std::path::PathBuf;
@@ -23,7 +24,6 @@ use crate::error::Error;
 #[cfg(debug_assertions)]
 pub fn current_dir() -> crate::Result<PathBuf> {
     let dir = std::env::current_dir().map_err(Error::Io)?;
-
     Ok(dir.clone())
 }
 

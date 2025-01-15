@@ -1,9 +1,13 @@
+#![allow(dead_code, clippy::needless_doctest_main)]
+// TODO: Remove this after testing new feat.
+
 pub(crate) mod cli;
 pub(crate) mod config;
 pub(crate) mod error;
 pub(crate) mod prelude;
 pub(crate) mod processor;
 pub(crate) mod retained;
+pub(crate) mod levenshtein;
 
 use std::fs::File;
 use std::marker::PhantomData;

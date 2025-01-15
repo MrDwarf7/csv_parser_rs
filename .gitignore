@@ -16,6 +16,7 @@ data/*.xlsm
 #scratch/
 **/*/output.csv
 _*_dist/
+_*_dist.zip
 
 env*
 *env

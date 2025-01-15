@@ -1,11 +1,46 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use config::builder::DefaultState;
+use config::{ConfigBuilder, Value};
+use regex::Regex;
+
+// #[cfg(debug_assertions)]
+// use log::{debug, info};
 
 use crate::cli::{Cli, OutputType};
+use crate::config::file_path_finds::{all_files_in_given, parse_user_variable_path};
 use crate::prelude::{Deserialize, Serialize, *};
+
+/// Regex tests at bottom of the file - see #[cfg(test)] mod regex_filename
+/// This Regex is designed to allow the user to pass through a variable input from the config file or CLI.
+///
+/// We're able to accept `\\data\\required_name.csv`, \\data\\required_name 123.csv`, or C:\\some\\path\\to\\data\\required_name 2025-01-15.csv
+/// And still remain compatible with the rest of the codebase.
+///
+/// This feature applies to the output pathing as well.
+///
+/// EG:
+/// Provided an output paht that looks like this:
+/// `\\data\\required_name.*.csv`
+/// then the regex will capture the `required_name` part of the string - ie: only the actual filename
+///
+/// This allows the user to setup the config file as:
+/// ```json
+/// "source": "\\data\\required_name.*.csv",
+/// "output_type": "csv",
+/// "output_path": "\\data\\required_name.*.csv",
+/// ```
+/// and be able to drop in any file that matches the pattern `required_name.*.csv`; such as `required_name 2025-01-15.csv`
+/// and have the output file be named `required_name 2025-01-15.csv` as well.
+///
+pub static REGEX_FILENAME: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?P<name>.*)\.csv").expect("Failed to create regex"));
+
+pub static REGEX_VAR_REPLACE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{.*\}").expect("Failed to create regex"));
 
 /// Represents the configuration settings for the application.
 ///
@@ -229,15 +264,176 @@ impl TryFrom<Cli> for Config {
         }
 
         let config = builder.build().map_err(Error::ConfigParse)?;
-        let mut config: Config = config.try_deserialize().map_err(Error::ConfigParse)?;
+        // dbg!(&config);
+
+        let prov_src = config
+            .cache
+            .clone()
+            .into_table()
+            .expect("Failed to convert cache to table");
+        let provided_source_path = &prov_src["source"];
+        println!("Provided Source Path: {:?}", provided_source_path);
+
+        dbg!(&provided_source_path);
+
+        // \\data\\contains_Claims by Claim Reason{var}.csv
+
+        let fixed_path =
+            parse_user_variable_path(&config).unwrap();
+        dbg!(&fixed_path);
+        todo!();
+
+        let source_key = "source";
+        let new_path = config
+            .get_table("source")
+            .unwrap_or_default()
+            .get_key_value(source_key)
+            .unwrap()
+            .1
+            .to_string();
+
+        let mut config: Config = config.try_deserialize().expect("Failed to deserialize config");
+
+        config.source = PathBuf::from(new_path);
 
         // remove any keys & values that start with __ as these are the 'default' filler keys
         config.fields.retain(|f| !f.starts_with("__"));
         config.include_cols_with.retain(|k, _| !k.starts_with("__"));
 
+        println!("Config: {:?}", config);
+
+        todo!();
+
         Ok(config)
     }
 }
+
+// fn parse_user_variable_path(config: &config::Config) -> Result<PathBuf> {
+//     let (key, prov_path) = config.cache.clone().into_table()?.into_iter().next().unwrap();
+//     dbg!(&key);
+//     // dbg!(&prov_path);
+//     let prov_path = prov_path.to_string();
+// 
+//     if !prov_path.contains('{') || !prov_path.contains('}') {
+//         let prov_path = prov_path.clone();
+//         return Ok(PathBuf::from(prov_path));
+//     }
+// 
+//     let re = &REGEX_FILENAME;
+//     let captures = re.captures(&prov_path).unwrap();
+//     dbg!(&captures);
+// 
+//     let name = &captures["name"];
+//     dbg!(&name);
+// 
+//     let idx_last_path_div = prov_path.rfind('\\').unwrap_or_else(|| {
+//         prov_path.rfind('/').unwrap_or(0)
+//     });
+//     let idx_left_brace = prov_path.find('{').unwrap();
+//     let idx_right_brace = prov_path.find('}').unwrap();
+// 
+//     let (ancestors_path, filenmae) = prov_path.split_at(idx_last_path_div);
+// 
+//     // let (path, filenmae) = prov_path.split_at(idx_left_brace);
+//     dbg!(&ancestors_path, &filenmae);
+// 
+//     // let filler = &prov_path[idx_left_brace + 1..idx_right_brace]; // may be useful later to have hot-words that mean something special
+//     // dbg!(filler);
+// 
+//     let current = crate::config::current_dir()?;
+//     let replaced_var_path = format!("{}{}", current.display(), ancestors_path);
+//     let p = PathBuf::from(replaced_var_path);
+// 
+//     dbg!(&p);
+// 
+//     // let m = if PathBuf::from(ancestors_path).is_relative() {
+//     //     println!("Relative path");
+//     //     std::env::current_dir()?
+//     // } else {
+//     //     PathBuf::from(ancestors_path)
+//     // };
+// 
+//     let files = all_files_in_given(&p).expect("Failed to get files in given path");
+//     dbg!(&files);
+//     let closest_match = match files.len().cmp(&1) {
+//         std::cmp::Ordering::Less => {
+//             let mut closest = None;
+//             let mut closest_distance = usize::MAX;
+//             for file in files {
+//                 let file_name = file.file_name().unwrap().to_str().unwrap();
+//                 let distance = crate::levenshtein::levenshtein_distance_matrix(name, file_name) as usize;
+//                 if distance < closest_distance {
+//                     closest = Some(file);
+//                     closest_distance = distance;
+//                 }
+//             }
+//             closest
+//         }
+//         std::cmp::Ordering::Equal => Some(files[0].clone()),
+//         std::cmp::Ordering::Greater => None,
+//     };
+// 
+//     dbg!(closest_match);
+// 
+//     // let provided_source_path = config.get("source").map_err(Error::ConfigParse)?;
+//     // let re = &REGEX_FILENAME;
+//     // let caps = re.captures(provided_source_path).unwrap();
+//     // let mut captured_name = caps.name("name").unwrap().as_str();
+//     // let captured_name = captured_name.replace("{var}", ".*");
+//     // let rgx_fmt = format!(r"^{}/{}$", captured_name, r".csv");
+//     // let captured_name_regex = Regex::new(&rgx_fmt).unwrap();
+//     //
+//     // let files = std::fs::read_dir(provided_source_path).map_err(Error::Io)?;
+//     // // find the first file (by date) that matches the regex fof captured_name_regex (ie: the user provided filename)
+//     //
+//     // let mut found_file = None;
+//     // files.into_iter().for_each(|f| {
+//     //     let file = f.unwrap();
+//     //     let name = file.file_name();
+//     //     dbg!(&name);
+//     //     let file_name = name.to_str().unwrap();
+//     //     if captured_name_regex.is_match(file_name) {
+//     //         found_file = Some(file);
+//     //     }
+//     // });
+//     //
+//     // if let Some(file) = found_file {
+//     //     let file_path = file.path();
+//     //     Ok(file_path)
+//     // } else {
+//     //     Err(Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "No file found")))
+//     // }
+//     todo!();
+// }
+
+// fn all_files_in_given(root: &PathBuf) -> Result<Vec<PathBuf>> {
+//     let mut files = Vec::new();
+//     for entry in std::fs::read_dir(root).map_err(Error::Io)? {
+//         let entry = entry?;
+//         let metadata = entry.metadata()?;
+//         if metadata.is_dir() {
+//             continue;
+//         }
+//         files.push(entry.path());
+//     }
+//     Ok(files)
+// }
+
+// fn all_files_in_given(root: &PathBuf) -> Result<Vec<PathBuf>> {
+//     let mut files = Vec::new();
+//     let entries = std::fs::read_dir(root).map_err(Error::Io)?;
+//     for entry in entries {
+//         let entry = entry.map_err(Error::Io)?;
+//         let path = entry.path();
+//         if path.is_dir() {
+//             continue;
+//         }
+//         if path.is_file() {
+//             files.push(path);
+//         }
+//     }
+//     Ok(files)
+// }
 
 /// Validates and overrides configuration settings with CLI arguments.
 ///
@@ -383,5 +579,96 @@ impl Debug for Config {
     /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?)
+    }
+}
+
+#[cfg(test)]
+mod config_parsing {
+    use super::*;
+
+    const MANUAL_CONFIG: &str = r#"
+    {
+      "source": "\\data\\contains_Claims by Claim Reason{var}.csv",
+      "output_type": "csv",
+      "output_path": "\\data\\contains_Claims by Claim Reason.csv",
+      "has_headers": true,
+      "fields": [
+        "ClaimReason",
+        "PlanMemberID",
+        "TransactionID",
+        "ClaimType"
+      ],
+      "unique_fields": [
+        "PlanMemberID"
+      ],
+      "include_cols_with": {
+        "ClaimReason": [
+          "Claim Reason = Rollover",
+          "Claim Reason = Portability"
+        ],
+        "ClaimType": [
+          "Portability - Total Balance",
+          "Portability - Part Balance",
+          "Withdrawal - Part Balance",
+          "Withdrawal - Total Balance"
+        ]
+      }
+    }
+    "#;
+}
+
+#[cfg(test)]
+mod regex_filename {
+    use super::*;
+
+    #[test]
+    fn test_regex_filename_on_path() {
+        let control_name = "filename";
+
+        let t_named_path = PathBuf::from("\\data\\filename.csv");
+        let t_filename = t_named_path.file_name().unwrap().to_str().unwrap();
+
+        let re = &REGEX_FILENAME;
+        // let caps = re.captures().unwrap();
+        let caps = re.captures(t_filename).unwrap();
+        let n = &caps["name"];
+        let caps_name = caps.name("name").unwrap().as_str();
+
+        assert_eq!(control_name, caps_name);
+        assert_eq!(caps_name, n);
+        assert_eq!(control_name, &caps["name"]);
+    }
+
+    #[test]
+    fn test_regex_only_filename() {
+        let control_name = "filename";
+
+        let t_named_path = PathBuf::from("filename.csv");
+        let t_filename = t_named_path.file_name().unwrap().to_str().unwrap();
+
+        let re = &REGEX_FILENAME;
+        // let caps = re.captures().unwrap();
+        let caps = re.captures(t_filename).unwrap();
+        let caps_name = caps.name("name").unwrap().as_str();
+
+        assert_eq!(control_name, caps_name);
+        assert_eq!(control_name, &caps["name"]);
+    }
+
+    #[test]
+    fn test_regex_absoloute_path() {
+        let control_name = "filename";
+
+        let cur_folder = std::env::current_dir().unwrap();
+        let t_named_path = cur_folder.join("filename.csv");
+        let t_filename = t_named_path.file_name().unwrap().to_str().unwrap();
+
+        let re = &REGEX_FILENAME;
+        // let caps = re.captures().unwrap();
+        let caps = re.captures(t_filename).unwrap();
+        let caps_name = caps.name("name").unwrap().as_str();
+
+        assert_eq!(control_name, caps_name);
+        assert_eq!(control_name, &caps["name"]);
     }
 }

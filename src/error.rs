@@ -100,4 +100,7 @@ pub enum Error {
     /// ```
     #[error("Failed to read CSV file from source provided: {0}")]
     CsvRead(String),
+
+    #[error("Failed to capture or parsee regex: {0}")]
+    RegexCapture(String),
 }

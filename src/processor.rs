@@ -105,7 +105,7 @@ impl Processor {
     /// ```
     pub(crate) fn deduplicate(&mut self, retained_data: &mut RetainedData) {
         let mut unique_values = HashSet::new();
-        for field in &self.config.unique_fields {
+        for field in &self.config.as_ref().unique_fields {
             let field_idx_in_existing = retained_data
                 .retained_headers
                 .iter()
