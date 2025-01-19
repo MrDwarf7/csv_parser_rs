@@ -1,7 +1,7 @@
 #[cfg(windows)]
 extern crate windres;
 
-fn main() -> std::io::Result<()> {
+fn main() {
     #[cfg(debug_assertions)]
     unsafe {
         std::env::set_var("CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG", "true");
@@ -38,5 +38,4 @@ fn main() -> std::io::Result<()> {
 
         res.compile()?;
     }
-    Ok(())
 }

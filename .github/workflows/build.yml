@@ -1,0 +1,219 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  check:
+    name: Check all via clippy
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ x86_64-windows ] # Handles both msvc and gnu
+        include:
+          - build: 86_64-pc-windows-msvc
+            os: windows-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+
+    if: github.repository == ${{ github.repository }} || github.event_name != 'schedule'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Remove rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      - name: Setup Rust for {{ matrix.os }} using {{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          targets: x86_64-pc-windows-msvc, x86_64-pc-windows-gnu
+          components: rustfmt, clippy, cargo, rustc-codegen-cranelift
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
+      - name: Run Cargo check
+        run: cargo check
+
+      - name: Run Clippy with pedantic
+        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: 1
+    strategy:
+      fail-fast: true
+      matrix:
+        build: [ x86_64-windows ] # Handles both msvc and gnu
+        include:
+          - build: 86_64-pc-windows-msvc
+            os: windows-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: windows-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Remove rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      - name: Setup Rust for {{ matrix.os }} using {{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          components: rustfmt, clippy, cargo, rustc-codegen-cranelift
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
+      - name: Run cargo test
+        run: cargo test --release --all
+
+  lints_and_fmt:
+    name: Lints and Fmt
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ x86_64-windows ] # Handles both msvc and gnu
+        include:
+          - build: 86_64-pc-windows-msvc
+            os: windows-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+          #          - build: 86_64-pc-windows-gnu
+          #            repository: csv_parser_rs
+          #            os: windows-latest
+          #            rust: nightly
+          #            target: x86_64-pc-windows-gnu
+          #            cross: false
+
+          - build: 86_64-pc-windows-msvc
+            os: ubuntu-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: ubuntu-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Remove rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      - name: Setup Rust for {{ matrix.os }} using {{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          targets: x86_64-pc-windows-msvc, x86_64-pc-windows-gnu
+          components: rustfmt, clippy, cargo, rustc-codegen-cranelift
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
+      - name: Run Rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy with pedantic
+        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ x86_64-windows ] # Handles both msvc and gnu
+        include:
+          - build: 86_64-pc-windows-msvc
+            os: windows-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+          #          - build: 86_64-pc-windows-gnu
+          #            repository: csv_parser_rs
+          #            os: windows-latest
+          #            rust: nightly
+          #            target: x86_64-pc-windows-gnu
+          #            cross: false
+
+          - build: 86_64-pc-windows-msvc
+            os: ubuntu-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: ubuntu-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Remove rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      #      - name: Provide the target as and env variable
+      #        run: echo "TARGET=$TARGET" >> $GITHUB_ENV
+
+      - name: Setup Rust for {{ matrix.os }} using {{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          targets: x86_64-pc-windows-msvc, x86_64-pc-windows-gnu
+          components: rustfmt, clippy, cargo, rustc-codegen-cranelift
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
+      - name: Run Cargo Doc checks (MSVC)
+        run: cargo doc --no-deps --all-features --all --target x86_64-pc-windows-msvc --document-private-items
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
+      - name: Run Cargo Doc checks (GNU)
+        run: cargo doc --no-deps --all-features --all --target x86_64-pc-windows-gnu --document-private-items
+        env:
+          RUSTDOCFLAGS: "-D warnings"

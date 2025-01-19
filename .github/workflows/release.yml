@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  preview: ${{ !startsWith(github.ref, 'refs/tags/v') || github.repository != '${{ github.repository }} ' }}
+
+jobs:
+  build-dist:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ x86_64-windows ] # Handles both msvc and gnu
+        include:
+          - build: 86_64-pc-windows-msvc
+            os: windows-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: windows-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Remove rust-toolchain.toml file
+        run: rm rust-toolchain.toml
+
+      - name: Setup Rust for {{ matrix.os }} using {{ matrix.rust }} toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          targets: x86_64-pc-windows-msvc, x86_64-pc-windows-gnu
+          components: rustfmt, clippy, cargo, rustc-codegen-cranelift
+
+      - name: Show command used for Cargo in logs
+        run: |
+          echo "Cargo command is: ${{ env.CARGO }}"
+          echo "target flags are: ${{ env.TARGET_FLAGS }}"
+
+      - name: cargo install cargo-make
+        run: Install cargo-make
+
+      - name: Run cargo test
+        if: "!matrix.skip_tests"
+        run: ${{ env.CARGO }} test --release --all --target ${{ matrix.target }}
+
+      - name: Build release binary
+        run: ${{ env.CARGO }} build --release --target ${{ matrix.target }}
+      - name: Build archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/${{ matrix.target }}/release/{{ matrix.repository }}.exe dist/
+          else
+            cp target/${{ matrix.target }}/release/{{ matrix.repository }} dist/
+          fi
+
+      - uses: actions/upload-artifact@main
+        with:
+          name: bin-${{ matrix.build }}-${{ matrix.rust }}
+          path: dist
+
+  publish:
+    name: Publish Release
+    needs: [ build-dist ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@master
+
+      - name: Download artifacts
+        uses: actions/download-artifact@main
+
+      - name: Build Archive
+        shell: bash
+        run: |
+          set -ex
+          
+          source="$(pwd)"
+          tag=${GITHUB_REF_NAME//\//}
+          mkdir -p _${tag}_dist
+          cd "$(mktemp -d)"
+          mv $source/dist-* .
+          mkdir dist
+          
+          for dir in dist-*; do
+              platform=${dir#"dist-"}
+              if [[ $platform =~ "windows" ]]; then
+                  exe=".exe"
+              fi
+              pkgname=csv_parser_rs_${tag}_${platform}
+              cp $source/LICENSE-* $source/README.md $pkgname
+              mv dist-platform/*${exe} $pkgname
+              chmod +x $pkgname/*${exe}
+          
+              if [ "$exe" = "" ]; then
+                  tar cJf dist/${pkgname}.tar.xz $pkgname
+              else 
+                  7z a -r dist/${pkgname}.zip $pkgname
+              fi
+          done
+      - uses: svenstaro/upload-release-action@master
+        if: env.preview == 'false'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          file_glob: true
+          tag: ${{ github.ref_name }}
+          overwrite: true
+
+      - name: Upload binares as artifact
+        uses: actions/upload-artifact@main
+        if: env.preview == 'true'
+        with:
+          name: release
+          path: dist/*
