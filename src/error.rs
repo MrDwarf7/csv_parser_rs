@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 /// Represents the various errors that can occur in the application.
 ///
 /// This enum defines different types of errors that can be encountered during the execution
@@ -103,4 +105,21 @@ pub enum Error {
 
     #[error("Failed to capture or parsee regex: {0}")]
     RegexCapture(String),
+
+    #[error("Failed to parse config 'source'")]
+    ConfigSource,
+
+    #[error(
+        "Ambiguous file match - Two files have the exact same name, modified timestamp and size - Congratulations, you've found a bug in Windows!"
+    )]
+    AmbiguousFileMatch,
+
+    #[error("No matching files found")]
+    NoMatchingFiles,
+
+    #[error("Failed to find a parent path for the provided path: {0}. Please ensure the path is valid.")]
+    NoParentPath(PathBuf),
+
+    #[error("Failed to parse path: {0}")]
+    ParsingPathError(String),
 }
