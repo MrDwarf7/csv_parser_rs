@@ -3,7 +3,8 @@ use std::fmt::{Debug, Display};
 use std::ops::Not;
 use std::path::PathBuf;
 
-use clap::{command, Parser, ValueEnum};
+use clap::{Parser, ValueEnum, command};
+use stderrlog::LogLevelNum;
 
 use crate::prelude::{Deserialize, Serialize, *};
 
@@ -56,6 +57,47 @@ pub struct Cli {
 
     #[arg(name = "output_path", short = 'o', long = "output_path", help = "The output file path to use.", required = false, value_hint = clap::ValueHint::FilePath)]
     pub output_path: Option<PathBuf>,
+    
+    /// Optional verbosity level of the logger.
+    /// You may provide this as either a string or a number.
+    ///
+    /// The least verbose as 0 (Error -> Error Only)
+    /// Most verbose as 4 (Trace -> Trace Everything
+    /// If not provided, the default value is "INFO".
+    #[arg(value_enum, name = "verbosity", short = 'v', long = "verbosity", help = "The verbosity level of the logger.", required = false, default_value = "INFO", value_hint = clap::ValueHint::Other)]
+    pub verbosity_level: Option<VerbosityLevel>,
+    
+}
+
+/// The verbosity level of the logger.
+///
+/// The least verbose as 0 (Error -> Error Only)
+/// Most verbose as 4 (Trace -> Trace Everything).
+#[derive(Debug, ValueEnum, Clone, Copy, PartialEq, Eq)]
+#[clap(name = "VerbosityLevel", rename_all = "upper")]
+pub enum VerbosityLevel {
+    #[value(name = "ERROR", alias = "error", alias = "Error", alias = "0")]
+    Error,
+    #[value(name = "WARN", alias = "warn", alias = "Warn", alias = "1")]
+    Warn,
+    #[value(name = "INFO", alias = "info", alias = "Info", alias = "2")]
+    Info,
+    #[value(name = "DEBUG", alias = "debug", alias = "Debug", alias = "3")]
+    Debug,
+    #[value(name = "TRACE", alias = "trace", alias = "Trace", alias = "4")]
+    Trace,
+}
+
+impl From<VerbosityLevel> for LogLevelNum {
+    fn from(value: VerbosityLevel) -> Self {
+        match value {
+            VerbosityLevel::Error => LogLevelNum::Error,
+            VerbosityLevel::Warn => LogLevelNum::Warn,
+            VerbosityLevel::Info => LogLevelNum::Info,
+            VerbosityLevel::Debug => LogLevelNum::Debug,
+            VerbosityLevel::Trace => LogLevelNum::Trace,
+        }
+    }
 }
 
 /// Represents the output type for the `parse_csv_rs` tool.
@@ -290,7 +332,7 @@ impl Cli {
     pub fn new() -> Self {
         let s = Self::parse();
         s.to_env()
-            .unwrap_or_else(|e| eprintln!("Error setting environment variables: {e}"));
+            .unwrap_or_else(|e| error!("Error setting environment variables: {e}"));
         s
     }
 }
@@ -353,23 +395,42 @@ impl ToEnv for Cli {
 
         if let Some(source) = source {
             let source_name = format!("{}_{}", prefix, "SOURCE");
-            std::env::set_var(&source_name, source);
+            // Safety:
+            // It's safe to use set_var here as we're running in a single-threaded environment.
+            unsafe {
+                std::env::set_var(&source_name, source);
+            }
         }
 
         if let Some(config_file) = config_file {
             let config_file_name = format!("{}_{}", prefix, "CONFIG_FILE");
-            std::env::set_var(&config_file_name, config_file);
+
+            // Safety:
+            // It's safe to use set_var here as we're running in a single-threaded environment.
+            unsafe {
+                std::env::set_var(&config_file_name, config_file);
+            }
         }
 
         if let Some(output_type) = output_type {
             let output_type_name = format!("{}_{}", prefix, "OUTPUT_TYPE");
-            std::env::set_var(&output_type_name, output_type);
+
+            // Safety:
+            // It's safe to use set_var here as we're running in a single-threaded environment.
+            unsafe {
+                std::env::set_var(&output_type_name, output_type);
+            }
             std::env::var(&output_type_name).unwrap();
         }
 
         if let Some(output_path) = output_path {
             let output_path_name = format!("{}_{}", prefix, "OUTPUT_PATH");
-            std::env::set_var(&output_path_name, output_path);
+
+            // Safety:
+            // It's safe to use set_var here as we're running in a single-threaded environment.
+            unsafe {
+                std::env::set_var(&output_path_name, output_path);
+            }
         }
 
         Ok(())
