@@ -12,6 +12,8 @@ use regex::Regex;
 
 use crate::cli::{Cli, OutputType};
 use crate::config::file_path_finds::{all_files_in_given, parse_user_variable_path};
+use crate::config::extract_cached_config_value;
+use crate::config::file_path_finds::parse_user_variable_path;
 use crate::prelude::{Deserialize, Serialize, *};
 
 /// Regex tests at bottom of the file - see #[cfg(test)] mod regex_filename
@@ -264,95 +266,29 @@ impl TryFrom<Cli> for Config {
         }
 
         let config = builder.build().map_err(Error::ConfigParse)?;
-        // dbg!(&config);
 
-        let prov_src = config
-            .cache
-            .clone()
-            .into_table()
-            .expect("Failed to convert cache to table");
-        let provided_source_path = &prov_src["source"];
-        println!("Provided Source Path: {:?}", provided_source_path);
+        let fixed = fix_multiple_path_subs(&config, vec!["source", "output_path"]).unwrap_or_else(|e| {
+            match e {
+                Error::ParsingPathError(e) => warn!("Failed to fix multiple path substitutions: {}", e),
+                _ => panic!("Failed to fix multiple path substitutions"),
+            }
+            vec![]
+        });
 
-        dbg!(&provided_source_path);
-
-        // \\data\\contains_Claims by Claim Reason{var}.csv
-
-        let fixed_path =
-            parse_user_variable_path(&config).unwrap();
-        dbg!(&fixed_path);
-        todo!();
-
-        let source_key = "source";
-        let new_path = config
-            .get_table("source")
-            .unwrap_or_default()
-            .get_key_value(source_key)
-            .unwrap()
-            .1
-            .to_string();
+        let fixed_source = fixed.first().unwrap();
+        let fixed_output_path = fixed.get(1).unwrap();
 
         let mut config: Config = config.try_deserialize().expect("Failed to deserialize config");
 
-        config.source = PathBuf::from(new_path);
+        config.source = fixed_source.clone();
+        config.output_path = fixed_output_path.clone();
 
-        // remove any keys & values that start with __ as these are the 'default' filler keys
-        config.fields.retain(|f| !f.starts_with("__"));
-        config.include_cols_with.retain(|k, _| !k.starts_with("__"));
-
-        println!("Config: {:?}", config);
-
-        todo!();
+        config = clear_placeholder_keys(config)?;
 
         Ok(config)
     }
 }
 
-// fn parse_user_variable_path(config: &config::Config) -> Result<PathBuf> {
-//     let (key, prov_path) = config.cache.clone().into_table()?.into_iter().next().unwrap();
-//     dbg!(&key);
-//     // dbg!(&prov_path);
-//     let prov_path = prov_path.to_string();
-// 
-//     if !prov_path.contains('{') || !prov_path.contains('}') {
-//         let prov_path = prov_path.clone();
-//         return Ok(PathBuf::from(prov_path));
-//     }
-// 
-//     let re = &REGEX_FILENAME;
-//     let captures = re.captures(&prov_path).unwrap();
-//     dbg!(&captures);
-// 
-//     let name = &captures["name"];
-//     dbg!(&name);
-// 
-//     let idx_last_path_div = prov_path.rfind('\\').unwrap_or_else(|| {
-//         prov_path.rfind('/').unwrap_or(0)
-//     });
-//     let idx_left_brace = prov_path.find('{').unwrap();
-//     let idx_right_brace = prov_path.find('}').unwrap();
-// 
-//     let (ancestors_path, filenmae) = prov_path.split_at(idx_last_path_div);
-// 
-//     // let (path, filenmae) = prov_path.split_at(idx_left_brace);
-//     dbg!(&ancestors_path, &filenmae);
-// 
-//     // let filler = &prov_path[idx_left_brace + 1..idx_right_brace]; // may be useful later to have hot-words that mean something special
-//     // dbg!(filler);
-// 
-//     let current = crate::config::current_dir()?;
-//     let replaced_var_path = format!("{}{}", current.display(), ancestors_path);
-//     let p = PathBuf::from(replaced_var_path);
-// 
-//     dbg!(&p);
-// 
-//     // let m = if PathBuf::from(ancestors_path).is_relative() {
-//     //     println!("Relative path");
-//     //     std::env::current_dir()?
-//     // } else {
-//     //     PathBuf::from(ancestors_path)
-//     // };
-// 
 //     let files = all_files_in_given(&p).expect("Failed to get files in given path");
 //     dbg!(&files);
 //     let closest_match = match files.len().cmp(&1) {
@@ -434,6 +370,49 @@ impl TryFrom<Cli> for Config {
 //     }
 //     Ok(files)
 // }
+/// remove any keys & values that start with __ as these are the 'default' filler keys
+fn clear_placeholder_keys(mut config: Config) -> Result<Config> {
+    config.fields.retain(|f| !f.starts_with("__"));
+    config.include_cols_with.retain(|k, _| !k.starts_with("__"));
+    Ok(config)
+}
+
+fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<Vec<PathBuf>> {
+    let mut extracted = vec![];
+
+    #[allow(unused_assignments)]
+    let mut last_path: Box<&str> = Box::default();
+    for path in paths {
+        last_path = Box::new(path);
+        debug!("Attempting to extract path: {}", path);
+
+        let extracted_path = extract_cached_config_value(config, path)?;
+        let fixed_path = match parse_user_variable_path(&extracted_path) {
+            Ok(f) => f,
+            Err(_) => {
+                if *last_path == path {
+                    warn!("Failed to extract path: {}", path);
+                    let extension_idx = extracted_path.rfind('.');
+                    // we want to append "out" after the filename, but before the .extension
+                    let fixed_path = match extension_idx {
+                        Some(idx) => {
+                            let (before, after) = extracted_path.split_at(idx);
+                            format!("{}out{}", before, after)
+                        }
+                        None => format!("{}out", extracted_path),
+                    };
+                    extracted.push(PathBuf::from(fixed_path));
+                    continue;
+                } else {
+                    unreachable!("Failed to extract path: {}", path);
+                    // return Err(Error::ParsingPathError(e.to_string()));
+                }
+            }
+        };
+        extracted.push(fixed_path);
+    }
+    Ok(extracted)
+}
 
 /// Validates and overrides configuration settings with CLI arguments.
 ///
