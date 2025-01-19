@@ -237,7 +237,7 @@ impl TryFrom<Cli> for Config {
 
         let fixed = fix_multiple_path_subs(&config, vec!["source", "output_path"]).unwrap_or_else(|e| {
             match e {
-                Error::ParsingPathError(e) => warn!("Failed to fix multiple path substitutions: {}", e),
+                Error::ParsingPath(e) => warn!("Failed to fix multiple path substitutions: {}", e),
                 _ => panic!("Failed to fix multiple path substitutions"),
             }
             vec![]
@@ -248,26 +248,26 @@ impl TryFrom<Cli> for Config {
 
         let mut config: Config = config.try_deserialize().expect("Failed to deserialize config");
 
-        config.source = fixed_source.clone();
-        config.output_path = fixed_output_path.clone();
+        config.source.clone_from(fixed_source);
+        config.output_path.clone_from(fixed_output_path);
 
-        config = clear_placeholder_keys(config)?;
+        config = clear_placeholder_keys(config);
 
         Ok(config)
     }
 }
 
 /// remove any keys & values that start with __ as these are the 'default' filler keys
-fn clear_placeholder_keys(mut config: Config) -> Result<Config> {
+fn clear_placeholder_keys(mut config: Config) -> Config {
     config.fields.retain(|f| !f.starts_with("__"));
     config.include_cols_with.retain(|k, _| !k.starts_with("__"));
-    Ok(config)
+    config
 }
 
+#[allow(unused_assignments, clippy::redundant_else, clippy::manual_let_else)]
 fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<Vec<PathBuf>> {
     let mut extracted = vec![];
 
-    #[allow(unused_assignments)]
     let mut last_path: Box<&str> = Box::default();
     for path in paths {
         last_path = Box::new(path);
@@ -284,9 +284,9 @@ fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<V
                     let fixed_path = match extension_idx {
                         Some(idx) => {
                             let (before, after) = extracted_path.split_at(idx);
-                            format!("{}out{}", before, after)
+                            format!("{before}out{after}")
                         }
-                        None => format!("{}out", extracted_path),
+                        None => format!("{extracted_path}out"),
                     };
                     extracted.push(PathBuf::from(fixed_path));
                     continue;

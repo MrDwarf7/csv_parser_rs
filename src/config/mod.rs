@@ -29,6 +29,7 @@ where
     suffix_ext: Option<&'a str>,
 }
 
+#[allow(clippy::unnecessary_wraps)] // TODO: will need to change it over at some point
 fn is_relative(prov_path_str: impl AsRef<str>) -> crate::prelude::Result<PathBuf> {
     if PathBuf::from(&prov_path_str.as_ref()).is_absolute() {
         Ok(PathBuf::from(prov_path_str.as_ref()))
@@ -52,7 +53,7 @@ pub(crate) fn resolve_if_relative(path: &'_ Path) -> Cow<'_, Path> {
     }
 
     // For if user provides \\data\\required_name.csv vs data\\required_name.csv in the config file at runtime
-    if !path_str.starts_with("\\") {
+    if !path_str.starts_with('\\') {
         current_dir_str.push('\\');
     }
     current_dir_str.push_str(&path_str);

@@ -30,12 +30,12 @@ fn main() {
         //     .define("THE_PROJECT", Some(format!(r#""{name}"#).as_str()))
         //     .define("THE_VERSION", Some(format!(r#""{vers}"#).as_str()))
         //     .define("THE_FILEVESION", Some(file_version.as_str()))
-        //     .compile("res/resource.rc")?;
-        // for entry in std::fs::read_dir("res")? {
-        //     let entry = entry?;
+        //     .compile("res/resource.rc").expect("Failed to compile resource file");
+        // for entry in std::fs::read_dir("res").expect("Failed to read directory") {
+        //     let entry = entry.expect("Failed to read entry");
         //     println!("cargo:rerun-if-changed={},", entry.path().display());
         // }
 
-        res.compile()?;
+        res.compile().expect("Failed to compile resource file");
     }
 }

@@ -121,5 +121,5 @@ pub enum Error {
     NoParentPath(PathBuf),
 
     #[error("Failed to parse path: {0}")]
-    ParsingPathError(String),
+    ParsingPath(String),
 }

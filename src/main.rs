@@ -1,9 +1,10 @@
+#![allow(clippy::needless_doctest_main)]
+
 use log::{error, info, warn};
 
 pub(crate) mod cli;
 pub(crate) mod config;
 pub(crate) mod error;
-pub(crate) mod levenshtein;
 pub(crate) mod prelude;
 pub(crate) mod processor;
 pub(crate) mod retained;
@@ -71,7 +72,7 @@ pub fn main() -> Result<()> {
     }
 
     match state.output() {
-        Ok(_) => {
+        Ok(()) => {
             info!("Output successful");
             Ok(())
         }

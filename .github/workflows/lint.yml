@@ -41,8 +41,8 @@ jobs:
         with:
           cache-all-crates: true
 
-      - name: Run Cargo clipp (MSVC)
+      - name: Run Cargo clippy (MSVC)
         run: cargo clippy --target x86_64-pc-windows-msvc --all-features -- -W clippy::pedantic -D warnings
 
-      - name: Run Cargo clipp (GNU)
+      - name: Run Cargo clippy (GNU)
         run: cargo clippy --target x86_64-pc-windows-gnu --all-features -- -W clippy::pedantic -D warnings

@@ -11,7 +11,7 @@ use crate::prelude::*;
 /// Regex tests at bottom of the file - see `#[cfg(test)] mod regex_filename`
 /// This Regex is designed to allow the user to pass through a variable input from the config file or CLI.
 ///
-/// We're able to accept `\\data\\required_name.csv`, \\data\\required_name 123.csv`, or C:\\some\\path\\to\\data\\required_name 2025-01-15.csv
+/// We're able to accept `\\data\\required_name.csv`, `\\data\\required_name 123.csv`, or `C:\\some\\path\\to\\data\\required_name 2025-01-15.csv`
 /// And still remain compatible with the rest of the codebase.
 ///
 /// This feature applies to the output pathing as well.
@@ -32,11 +32,11 @@ use crate::prelude::*;
 ///
 pub static USER_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{(.+?)\}").ok().unwrap());
 
-/// Sized used for the default sort_by_modification_time function
-/// Handles the const generic for the sort_by_modification_time function
+/// Sized used for the default `sort_by_modification_time` function
+/// Handles the const generic for the `sort_by_modification_time` function
 ///
 /// Reason being:
-/// It's marginally faster to use an Array/slice over generic size, than allocating to the heap via Vec::new();
+/// It's marginally faster to use an Array/slice over generic size, than allocating to the heap via `Vec::new()`;
 const _S: usize = 1;
 
 pub fn parse_user_variable_path(path_str: &str) -> Result<PathBuf> {
@@ -71,9 +71,9 @@ pub fn parse_user_variable_path(path_str: &str) -> Result<PathBuf> {
     );
 
     // let stored = Box::new(matching_files.iter().map(|f| f.path()).collect::<Vec<_>>());
-    let stored = &matching_files.iter().map(|f| f.path()).collect::<Vec<_>>();
+    let stored = &matching_files.iter().map(DirEntry::path).collect::<Vec<_>>();
 
-    let sorted_matching_files = sort_by_modification_time::<_S>(matching_files.as_mut_slice())?;
+    let sorted_matching_files = sort_by_modification_time::<_S>(matching_files.as_mut_slice());
 
     let first_match = sorted_matching_files.first().ok_or_else(|| {
         error!("We found these files: {:?}", *stored);
@@ -121,7 +121,7 @@ fn extract_user_regex(base_path: &str) -> Option<UserDefinedParts<'_, PathBuf>> 
 }
 
 #[rustfmt::skip]
-fn sort_by_modification_time<const S: usize>(files: &mut [DirEntry]) -> Result<&mut [DirEntry]>
+fn sort_by_modification_time<const S: usize>(files: &mut [DirEntry]) -> &mut [DirEntry]
 where
     [DirEntry; S]: AsMut<[DirEntry]>,
     [DirEntry; S]: AsMut<[DirEntry]>,
@@ -131,7 +131,7 @@ where
         let b = b.metadata().and_then(|meta| meta.modified()).unwrap_or(SystemTime::UNIX_EPOCH);
         b.cmp(&a) // Rev -- Most recent first
     });
-    Ok(files)
+    files
 }
 
 fn find_match_files_from_regex_path(
