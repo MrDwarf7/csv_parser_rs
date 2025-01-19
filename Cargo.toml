@@ -37,11 +37,12 @@ thiserror = "*"
 rayon = "1.10.0"
 chrono = "0.4.39"
 
+stderrlog = "0.6.0"
+log = "0.4.22"
 
 [dev-dependencies]
 tempdir = "0.3.7"
-stderrlog = "0.6.0"
-log = "0.4.22"
+tempfile = "3.14.0"
 
 [profile.dev.package."*"]
 opt-level = 3
