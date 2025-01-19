@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 /// Computes the Leveshtein distance between two input strings
 ///
 /// # Arguments

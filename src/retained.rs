@@ -103,7 +103,7 @@ impl RetainedData {
         self.write(&mut wtr)?;
         wtr.flush()?;
 
-        println!("Output written to: {printable}");
+        info!("Output written to: {printable}");
 
         Ok(())
     }

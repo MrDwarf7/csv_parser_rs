@@ -1,18 +1,17 @@
-#![allow(dead_code, clippy::needless_doctest_main)]
-// TODO: Remove this after testing new feat.
+use log::{error, info, warn};
 
 pub(crate) mod cli;
 pub(crate) mod config;
 pub(crate) mod error;
+pub(crate) mod levenshtein;
 pub(crate) mod prelude;
 pub(crate) mod processor;
 pub(crate) mod retained;
-pub(crate) mod levenshtein;
 
 use std::fs::File;
 use std::marker::PhantomData;
 
-use crate::cli::{Cli, OutputType};
+use crate::cli::{Cli, OutputType, VerbosityLevel};
 use crate::config::Config;
 pub(crate) use crate::prelude::*;
 use crate::processor::{CsvHandler, Processor};
@@ -49,27 +48,35 @@ use crate::retained::RetainedData;
 /// ```
 pub fn main() -> Result<()> {
     let cli = Cli::new();
+    let _ = stderrlog::new()
+        .color(stderrlog::ColorChoice::Always)
+        .verbosity(cli.verbosity_level.unwrap_or(VerbosityLevel::Info))
+        .show_level(true)
+        .show_module_names(true)
+        .init();
 
     let mut state = State::new(cli)?;
-    println!("MAIN:: Config: {:#?}", &state.config);
+    info!("MAIN:: Config: {:#?}", &state.config);
 
     if let Err(proc_err) = state.process(&mut csv::Reader::from_path(&state.config.source)?) {
-        eprintln!("Error processing: {proc_err}");
+        error!("Error processing: {proc_err}");
     }
+
+    info!("Config before finishing: {:#?}", &state.config);
 
     if !state.config.unique_fields.is_empty() || state.config.unique_fields.len().gt(&1) {
         state.deduplicate();
     } else {
-        eprintln!("No unique fields provided, skipping deduplication");
+        warn!("No unique fields provided, skipping deduplication");
     }
 
     match state.output() {
         Ok(_) => {
-            println!("Output successful");
+            info!("Output successful");
             Ok(())
         }
         Err(e) => {
-            eprintln!("Error outputting: {e}");
+            error!("Error outputting: {e}");
             Err(e)
         }
     }
