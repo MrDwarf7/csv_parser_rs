@@ -1,4 +1,4 @@
-name: "Build with check & clippy"
+name: "Doccheck & Generation"
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - main
 
 jobs:
-  check:
-    name: Check all via clippy
+  docs:
+    name: Docs
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -21,8 +21,20 @@ jobs:
             rust: nightly
             target: x86_64-pc-windows-msvc
             cross: false
+          - build: 86_64-pc-windows-msvc
+            os: ubuntu-latest
+            repository: csv_parser_rs
+            rust: nightly
+            target: x86_64-pc-windows-msvc
+            cross: false
 
-    if: github.repository == ${{ github.repository }} || github.event_name != 'schedule'
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: ubuntu-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@master
@@ -42,8 +54,12 @@ jobs:
         with:
           cache-all-crates: true
 
-      - name: Run Cargo check
-        run: cargo check
+      - name: Run Cargo Doc checks (MSVC)
+        run: cargo doc --no-deps --all-features --all --target x86_64-pc-windows-msvc --document-private-items
+        env:
+          RUSTDOCFLAGS: "-D warnings"
 
-      - name: Run Clippy with pedantic
-        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
+      - name: Run Cargo Doc checks (GNU)
+        run: cargo doc --no-deps --all-features --all --target x86_64-pc-windows-gnu --document-private-items
+        env:
+          RUSTDOCFLAGS: "-D warnings"

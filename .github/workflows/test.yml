@@ -1,4 +1,4 @@
-name: "Build with check & clippy"
+name: "Tests"
 
 on:
   push:
@@ -7,9 +7,11 @@ on:
       - main
 
 jobs:
-  check:
-    name: Check all via clippy
+  test:
+    name: Tests
     runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: 1
     strategy:
       fail-fast: false
       matrix:
@@ -21,8 +23,12 @@ jobs:
             rust: nightly
             target: x86_64-pc-windows-msvc
             cross: false
-
-    if: github.repository == ${{ github.repository }} || github.event_name != 'schedule'
+          - build: 86_64-pc-windows-gnu
+            repository: csv_parser_rs
+            os: windows-latest
+            rust: nightly
+            target: x86_64-pc-windows-gnu
+            cross: false
     steps:
       - name: Checkout sources
         uses: actions/checkout@master
@@ -34,7 +40,7 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly
-          targets: x86_64-pc-windows-msvc, x86_64-pc-windows-gnu
+          target: ${{ matrix.target }}
           components: rustfmt, clippy, cargo, rustc-codegen-cranelift
 
       - name: Cache Cargo dependencies
@@ -42,8 +48,8 @@ jobs:
         with:
           cache-all-crates: true
 
-      - name: Run Cargo check
-        run: cargo check
+      - name: Run cargo test
+        run: cargo test --all
 
-      - name: Run Clippy with pedantic
-        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
+      - name: Run cargo test
+        run: cargo test --release --all

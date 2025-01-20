@@ -6,9 +6,11 @@ on:
       - "v*"
 
 env:
-  preview: ${{ !startsWith(github.ref, 'refs/tags/v') || github.repository != '${{ github.repository }} ' }}
+  preview: 'false'
+  # ${{ !startsWith(github.ref, 'refs/tags/v') || github.repository != '${{ github.repository }} ' }}
 
 jobs:
+  # Creates the distribution binaries that will be uploaded to GitHub via the `publish` job below
   build-dist:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,18 +47,24 @@ jobs:
 
       - name: Show command used for Cargo in logs
         run: |
-          echo "Cargo command is: ${{ env.CARGO }}"
-          echo "target flags are: ${{ env.TARGET_FLAGS }}"
+          echo "Cargo command is: ${{ vars.env.CARGO }}"
+          echo "target flags are: ${{ vars.env.TARGET_FLAGS }}"
+      
+      #          echo "Cargo command is: ${{ env.CARGO }}"
+      #          echo "target flags are: ${{ env.TARGET_FLAGS }}"
 
-      - name: cargo install cargo-make
-        run: Install cargo-make
+      # Will be used later for the Makefile.toml in the root of the project
+      #      - name: cargo install cargo-make
+      #        run: Install cargo-make
 
       - name: Run cargo test
         if: "!matrix.skip_tests"
-        run: ${{ env.CARGO }} test --release --all --target ${{ matrix.target }}
+        #        run: ${{ env.CARGO }} test --release --all --target ${{ matrix.target }}
+        run: ${{ vars.env.CARGO }} test --release --all --target ${{ matrix.target }}
 
       - name: Build release binary
-        run: ${{ env.CARGO }} build --release --target ${{ matrix.target }}
+        #        run: ${{ env.CARGO }} test --release --all --target ${{ matrix.target }}
+        run: ${{ vars.env.CARGO }} test --release --all --target ${{ matrix.target }}
       - name: Build archive
         shell: bash
         run: |
@@ -72,6 +80,7 @@ jobs:
           name: bin-${{ matrix.build }}-${{ matrix.rust }}
           path: dist
 
+  # Creates a release on GitHub
   publish:
     name: Publish Release
     needs: [ build-dist ]

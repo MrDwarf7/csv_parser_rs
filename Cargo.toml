@@ -2,7 +2,7 @@ cargo-features = ["codegen-backend"]
 
 [package]
 name = "csv_parser_rs"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 description = "Parses CSV's pased on a configuration, and filters out rows based on a set of criteria."
 license = "MIT"
