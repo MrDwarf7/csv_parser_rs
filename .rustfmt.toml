@@ -1,5 +1,5 @@
 edition = "2021"
-newline_style = "Unix"
+newline_style = "Native"
 
 max_width = 120
 
@@ -14,4 +14,3 @@ imports_layout = "HorizontalVertical"
 normalize_doc_attributes = true
 reorder_impl_items = true
 reorder_modules = true
-

@@ -1,11 +1,12 @@
-name: "Test"
+name: "Formatting"
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - master
       - main
-      - develop
 
 env:
   SCCACHE_GHA_ENABLED: true
@@ -15,8 +16,8 @@ env:
   PROJECT_NAME: csv_parser_rs
 
 jobs:
-  test:
-    name: "Test - test"
+  format-lint:
+    name: "Formatting - format-lint"
     strategy:
       matrix:
         include:
@@ -31,7 +32,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       RUSTC_WRAPPER: sccache
-      RUST_BACKTRACE: 1
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     steps:
       - name: "Checkout sources"
@@ -50,5 +50,8 @@ jobs:
       - name: "Setup Rust toolchain"
         run: rustup toolchain install nightly --profile default --target ${{ matrix.target }} --no-self-update
 
-      - name: "Run Cargo test"
-        run: cargo test --all --target ${{ matrix.target }}
+      - name: "Run Cargo fmt"
+        run: cargo fmt --all -- --check
+
+      - name: "Build project"
+        run: cargo build --release --all

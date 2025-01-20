@@ -18,6 +18,10 @@ data/*.xlsm
 _*_dist/
 _*_dist.zip
 
+*dist
+*dist.zip
+*.zip
+
 env*
 *env
 *env*
