@@ -31,6 +31,7 @@ echo "BREAKER: ${BREAKER}"
 [tasks.print_all]
 script_runner = "@duckscript"
 script = '''
+echo "BREAKER: ${BREAKER}"
 echo ""ROOT: ${ROOT}
 echo "PROFILE: ${PROFILE}"
 echo "VERSION: ${VERSION}"
