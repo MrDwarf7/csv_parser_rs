@@ -42,12 +42,21 @@ jobs:
       - name: "Make script executable # Test if works when already within GH Actions"
         run: chmod +x build/build.sh
       - name: "Build"
-        run: ./build/build.sh ${{ matrix.target }}
+        shell: bash
+        run: |
+          export ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}"
+          cargo build --release --locked --target "${{ matrix.target }}"
+          mkdir -p "${ARTIFACT_NAME}"
+          cp "target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}" "${ARTIFACT_NAME}"
+          cp "README.md" "LICENSE-MIT" "LICENSE-APACHE" "${ARTIFACT_NAME}"
+        # run: ./build/build.sh ${{ matrix.target }}
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}.zip
-          path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}.zip
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
+          path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}
+          # ${{ matrix.target }}
+          # path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}.zip
           if-no-files-found: 'error'
           compression-level: '9'
           overwrite: 'true'
@@ -78,19 +87,28 @@ jobs:
       - name: "Build"
         run: cargo build --release --locked --target ${{ matrix.target }}
       - name: "Pack artifact"
-        env:
-          TARGET_NAME: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
-          DIR: ${{ github.workspace }}
+        shell: powershell
+        # env:
+        # TARGET_NAME: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
+        # BINARY_DIR_PATH: target\${{ matrix.target }}\release
+        # TAG: ${{ github.ref_name }}
         run: |
-          New-Item -ItemType Directory -Path ${env:TARGET_NAME}
-          Copy-Item -Path "target\${{ matrix.target }}\release\${{ env.PROJECT_NAME }}.exe" -Destination ${env:TARGET_NAME}
-          Copy-Item -Path "README.md", "LICENSE-APACHE", "LICENSE-MIT" -Destination ${env:TARGET_NAME}
-          Compress-Archive -Path ${env:TARGET_NAME} -DestinationPath "${env:TARGET_NAME}"
+          $ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}"
+          New-Item -ItemType Directory -Path "$ARTIFACT_NAME"
+          Copy-Item -Path "target\${{ matrix.target }}\release\${{ env.PROJECT_NAME }}.exe" -Destination "$ARTIFACT_NAME"
+          Copy-Item -Path "README.md", "LICENSE-APACHE", "LICENSE-MIT" -Destination "$ARTIFACT_NAME"
+          # New-Item -ItemType Directory -Path "${env:TARGET_NAME}-${env:TAG}"
+          # Copy-Item -Path "${env:BINARY_DIR_PATH}\${{ env.PROJECT_NAME }}.exe" -Destination "${env:TARGET_NAME}-${env:TAG}\\"
+          # Copy-Item -Path "README.md", "LICENSE-APACHE", "LICENSE-MIT" -Destination "${env:TARGET_NAME}-${env:TAG}\\"
+          # Compress-Archive -Path "${env:TARGET_NAME}-${env:TAG}\*" -DestinationPath "${env:TARGET_NAME}-${env:TAG}.zip"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}.zip
-          path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}.zip
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
+          path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}
+          # ${{ matrix.target }}
+          # name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}
+          # path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ github.ref_name }}.zip
           if-no-files-found: 'error'
           compression-level: '9'
           overwrite: 'true'
@@ -145,4 +163,3 @@ jobs:
           name: Nightly Build
           body: ${{ env.NIGHTLY_BODY }}
           target_commitish: ${{ github.sha }}
-
