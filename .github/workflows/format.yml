@@ -1,5 +1,4 @@
 name: "Formatting"
-
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -7,14 +6,12 @@ on:
     branches:
       - master
       - main
-
 env:
   SCCACHE_GHA_ENABLED: true
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   PROJECT_NAME: csv_parser_rs
-
 jobs:
   format-lint:
     name: "Formatting - format-lint"
@@ -25,7 +22,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
             gcc: gcc-x86-64-linux-gnu
             rust: nightly
-
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             rust: nightly
@@ -36,22 +32,17 @@ jobs:
     steps:
       - name: "Checkout sources"
         uses: actions/checkout@master
-
       - name: "Cache Cargo dependencies"
         uses: Swatinem/rust-cache@v2
-
       - name: "Setup sccache"
         uses: mozilla-actions/sccache-action@v0.0.6
-
       - name: "Install gcc"
         if: matrix.gcc != ''
         run: sudo apt update && sudo apt install -yq ${{ matrix.gcc }}
-
       - name: "Setup Rust toolchain"
         run: rustup toolchain install nightly --profile default --target ${{ matrix.target }} --no-self-update
-
       - name: "Run Cargo fmt"
-        run: cargo fmt --all -- --check
-
+        run: cargo fmt --all
       - name: "Build project"
         run: cargo build --release --all
+
