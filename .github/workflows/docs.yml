@@ -85,27 +85,14 @@ jobs:
               sudo apt-get install zip
           fi
           zip --version
-      # - name: "Package Docs Unix"
-      #   env:
-      #     TARGET_NAME: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
-      #     PROJECT_NAME: ${{ env.PROJECT_NAME }}
-      #   shell: bash
-      #   run: |
-      #     cd "target/${{ matrix.target }}/doc/"
-      #     zip -r "$TARGET_NAME-docs.zip *"
-      # zip -r "$TARGET_NAME-docs.zip" -@ << EOF
-      # $(find "target/${{ matrix.target }}/doc/" -print0 | xargs -0 -I {} sh -c 'echo -n "{} "; echo $(basename {})'))
-      # EOF
       - name: "Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs.zip
           path: target/${{ matrix.target }}/doc/
-          # "$TARGET_NAME-docs.zip"
           if-no-files-found: 'error'
           compression-level: '9'
           overwrite: 'true'
-          # path: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs.zip
   package-docs-windows:
     name: "Docs - package-docs-windows"
     strategy:
@@ -135,27 +122,10 @@ jobs:
           RUSTDOCFLAGS: "-D warnings"
         run: cargo doc --no-deps --all-features --all --target ${{ matrix.target }} --document-private-items
       - name: "Upload artifact"
-        # - name: "Package Docs Windows"
-        #   env:
-        #     TARGET_NAME: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
-        #     TAG: ${{ github.ref_name }}
-        #     COPY_DOC_DIR_PATH: target\${{ matrix.target }}\doc
-        #   shell: powershell
-        #   run: |
-        #     Compress-Archive -Path "${env:COPY_DOC_DIR_PATH}\*" -DestinationPath "${env:TARGET_NAME}-docs" -CompressionLevel Optimal
-        # New-Item -ItemType Directory -Path "${env:TARGET_NAME}-docs"
-        # Copy-Item -Recurse -Path "${env:COPY_DOC_DIR_PATH}\*" -Destination "${env:TARGET_NAME}-docs"
-        # Compress-Archive -Path "${env:TARGET_NAME}-docs\*" -DestinationPath "${env:TARGET_NAME}-docs"
-
-        # env:
-        #   TARGET_NAME: ${{ env.PROJECT_NAME }}-${{ matrix.target }}
-        #   TAG: ${{ github.ref_name }}
-        #   COPY_DOC_DIR_PATH: target\${{ matrix.target }}\doc
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs.zip
           path: target\${{ matrix.target }}\doc\
-          # ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs.zip
           if-no-files-found: 'error'
           compression-level: '9'
           overwrite: 'true'
