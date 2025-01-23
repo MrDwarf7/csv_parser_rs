@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   PROJECT_NAME: csv_parser_rs
+  DOCS_BODY: "${{ github.event.release.body }}"
 jobs:
   docs:
     name: "Docs - docs"
@@ -129,3 +130,50 @@ jobs:
           if-no-files-found: 'error'
           compression-level: '9'
           overwrite: 'true'
+  publish-docs:
+    name: "Docs - publish-docs"
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: [package-docs-unix, package-docs-windows]
+    steps:
+      - run: |
+          echo 'DOCS_BODY<<EOF' >> $GITHUB_ENV
+          echo "From commit: ${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: "Checkout sources"
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        id: artifact-download-step
+        with:
+          merge-multiple: true
+      - name: "Update tag for docs"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --force docs && git push --force origin tag docs
+      - name: "Get directory structure"
+        shell: bash
+        run: |
+          sudo apt update
+          echo "tree from single dot"
+          tree -afh .
+          echo \n\n
+
+          echo "tree from github workspace call"
+          tree -afh ${{ github.workspace }}
+      - name: "Docs - draft"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "docs"
+          # repository: ${{ github.repository }}
+          fail_on_unmatched_files: true
+          draft: true
+          files: |
+            ${{ env.PROJECT_NAME }}-*
+          name: "[${{ github.ref_name }} Docs]"
+          body: ${{ env.DOCS_BODY }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: false
+  #          body_path: ${{ github.workspace }}-CHANGELOG.txt ## For adding changelog content
