@@ -157,10 +157,10 @@ jobs:
         shell: bash
         run: |
           sudo apt update
+          echo $PWD
           echo "tree from single dot"
           tree -afh .
           echo \n\n
-
           echo "tree from github workspace call"
           tree -afh ${{ github.workspace }}
       - name: "Docs - draft"
@@ -171,7 +171,7 @@ jobs:
           fail_on_unmatched_files: true
           draft: true
           files: |
-            ${{ env.PROJECT_NAME }}-*
+            ${{ env.PROJECT_NAME }}-${{ matrix.target }}-docs.zip
           name: "[${{ github.ref_name }} Docs]"
           body: ${{ env.DOCS_BODY }}
           target_commitish: ${{ github.sha }}
