@@ -257,13 +257,6 @@ impl TryFrom<Cli> for Config {
     }
 }
 
-/// remove any keys & values that start with __ as these are the 'default' filler keys
-fn clear_placeholder_keys(mut config: Config) -> Config {
-    config.fields.retain(|f| !f.starts_with("__"));
-    config.include_cols_with.retain(|k, _| !k.starts_with("__"));
-    config
-}
-
 #[allow(unused_assignments, clippy::redundant_else, clippy::manual_let_else)]
 fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<Vec<PathBuf>> {
     let mut extracted = vec![];
@@ -346,6 +339,13 @@ fn cli_valid(builder: config::ConfigBuilder<DefaultState>, cli: &Cli) -> Result<
         )?;
     };
     Ok(builder)
+}
+
+/// remove any keys & values that start with __ as these are the 'default' filler keys
+fn clear_placeholder_keys(mut config: Config) -> Config {
+    config.fields.retain(|f| !f.starts_with("__"));
+    config.include_cols_with.retain(|k, _| !k.starts_with("__"));
+    config
 }
 
 impl Default for Config {
