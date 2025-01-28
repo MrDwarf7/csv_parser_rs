@@ -2,20 +2,23 @@
 
 ## Overview
 
-This program provides a CLI tool to parse CSV files, filtering out columns & rows based on criteria specified in a configuration file (`config.json`).
-Users can optionally override settings using command-line arguments, ensuring flexibility and adaptability to various use cases.
+This program provides a CLI tool to parse CSV files, filtering out columns &
+rows based on criteria specified in a configuration file (`.\config\config.json`).
+Users can optionally override settings using command-line arguments, 
+ensuring flexibility and adaptability to various use cases.
 
 ## Configuration
 
-> In the follow example(s) `$ROOT` is the directory the binary/`.exe` resides in.
+> In the follow example(s) `$ROOT` is the directory of the binary file or `.exe`.
 
 By default, the program will search for a config directory & config file in the following locations:
 `$ROOT/config` & `$ROOT/config/config.json` respectively.
 
-If the config folder or the config file is not found,
-the program will generate a dummy config file with similar struct and values to the below snippet in a `config` directory in the root of the binary.
+If the config folder and/or the config file is not found,
+the program will generate a 'dummy' config file with similar structure & values to the snippet below.
+You can find the newly created file at `$ROOT/config/config.json`.
 
-The configuration file (`config.json`) should be formatted as follows:
+The configuration file (`$ROOT/config/config.json`) should be formatted as follows:
 
 ```json
 {
@@ -44,8 +47,8 @@ The configuration file (`config.json`) should be formatted as follows:
 }
 ```
 
-- Note: The code handles both Windows and Linux-style paths.
-  This does not mean the Filesystem you're interacting with via the tool will necessarily play nice.
+- Pro-Tip!: The code handles both Windows and Linux-style paths.
+That being said - Filesystem themselves may not play nicely if you're mixing OS paths.
 
 ### Fields:
 

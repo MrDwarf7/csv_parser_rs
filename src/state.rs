@@ -33,8 +33,6 @@ pub struct State<'a> {
     pub config: Config,
     pub retained_data: RetainedData,
     pub csv_pipeline: CsvPipeline,
-    // pub handler: CsvHandler,
-    // pub processor: Processor,
     pub output_data: OutputData,
     phantom_data: PhantomData<&'a ()>,
 }
@@ -114,7 +112,6 @@ impl State<'_> {
     /// state.process(&mut rdr).expect("Failed to process CSV data");
     /// ```
     pub fn process(&mut self) -> Result<()> {
-        // Processor::process(&mut self.retained_data, &self.handler, rdr)
         self.csv_pipeline.process(&mut self.retained_data)
     }
 
@@ -130,7 +127,6 @@ impl State<'_> {
     /// ```
     pub fn deduplicate(&mut self) {
         self.csv_pipeline.deduplicate(&mut self.retained_data);
-        // self.processor.deduplicate(&mut self.retained_data);
     }
 
     /// Outputs the retained data based on the configured output type.

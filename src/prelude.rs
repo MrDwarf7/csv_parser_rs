@@ -77,20 +77,6 @@ pub fn update() -> Result<String> {
             Ok(self_update::cargo_crate_version!().to_string())
         }
     }
-
-    // let status = match std::thread::spawn(stauts_cls).join().unwrap() {
-    //     Ok(v) => {
-    //         info!("Update successful. Restarting with new version");
-    //         v
-    //     }
-    //     Err(_) => {
-    //         error!("Error updating.");
-    //         warn!("Update not completed. Continuing with current version");
-    //         return Ok(self_update::cargo_crate_version!().to_string());
-    //     }
-    // };
-
-    // Ok(status.version().to_string())
 }
 
 fn first_author() -> String {
@@ -105,12 +91,3 @@ pub const NO_CONFIG_FILE_MSG: &str = r#"
     is empty, or there was an error parsing it.
     Please check the config.json file.
     "#;
-
-// "Config file either doesn't exist,\n
-//              is empty,\n
-//               or there was an error parsing it,\n
-//                please check the config.json file",
-//
-//
-//
-//
