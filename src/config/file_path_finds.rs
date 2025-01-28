@@ -39,14 +39,19 @@ pub static USER_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{(.
 /// It's marginally faster to use an Array/slice over generic size, than allocating to the heap via `Vec::new()`;
 const _S: usize = 1;
 
-pub fn parse_user_variable_path(path_str: &str) -> Result<PathBuf> {
-    // If the user has not provided a user defined regex, then we can just fix the path and return it
-    let user_defined_parts = extract_user_regex(path_str);
+// TODO: Test
+//// Substitute the `var` variable in a string with the given `val` value.
+////
+//// Variable format: `{{ var }}`
+// fn substitute<'a: 'b, 'b>(str: &'a str, var: &str, val: &str) -> std::borrow::Cow<'b, str> {
+//     let format = format!(r"\{{\{{[[:space:]]*{}[[:space:]]*\}}\}}", var);
+//     Regex::new(&format).unwrap().replace_all(str, val)
+// }
 
-    // Serpating the calls here for refactoring purposes later.
-    // Can just call match on the extracted user_regex fnc call above to simplify if wanted.
-    let user_defined_parts = match user_defined_parts {
+pub fn parse_user_variable_path(path_str: &str) -> Result<PathBuf> {
+    let user_defined_parts = match extract_user_regex(path_str) {
         Some(mut parts) => {
+            trace!("User defined parts INNER: {:?}", parts);
             parts.base_path = if is_relative(parts.base_path.to_str().unwrap()).is_ok() {
                 is_relative(parts.base_path.to_str().unwrap())?
             } else {
@@ -57,13 +62,18 @@ pub fn parse_user_variable_path(path_str: &str) -> Result<PathBuf> {
         None => return is_relative(path_str),
     };
 
+    trace!("User defined parts OUTER: {:?}", user_defined_parts);
+
     let base_path_parent = user_defined_parts
         .base_path
         .parent()
         .ok_or_else(|| Error::NoParentPath(user_defined_parts.base_path.clone()))?;
 
+    trace!("Base path parent: {:?}", base_path_parent);
+
     let before_reg_filename =
-        &user_defined_parts.before_regex[user_defined_parts.before_regex.rfind('\\').unwrap_or_default() + 1..];
+        &user_defined_parts.before_regex[(user_defined_parts.before_regex.rfind('\\').unwrap_or_default() + 1)..];
+    trace!("Before regex filename: {:?}", before_reg_filename);
 
     let mut matching_files = Box::new(
         find_match_files_from_regex_path(base_path_parent, &user_defined_parts, before_reg_filename)
@@ -97,14 +107,20 @@ fn extract_user_regex(base_path: &str) -> Option<UserDefinedParts<'_, PathBuf>> 
     let re = &USER_PATH_REGEX;
 
     if let Some(captures) = re.captures(base_path) {
-        let var = &captures[1];
-        let user_defined_regex = Regex::new(var).ok()?;
+        let inner_regx = &captures[1];
+        let user_defined_regex = Regex::new(inner_regx).ok()?;
 
         // Everything BEFORE the user defined regex (ie : before { __ } )
         let start = &base_path[0..captures.get(0).unwrap().start()];
 
         // Everything AFTER the user defined regex (ie : after { __ } ) could be ext, or more filename
         let end = &base_path[captures.get(0).unwrap().end()..];
+        let raw_ext = Some(
+            end[end.rfind('.').unwrap_or_default()..]
+                .split_whitespace()
+                .next()
+                .unwrap_or_default(),
+        );
 
         return Some(UserDefinedParts {
             base_path: PathBuf::from(base_path),
@@ -114,6 +130,7 @@ fn extract_user_regex(base_path: &str) -> Option<UserDefinedParts<'_, PathBuf>> 
                 _phantom: std::marker::PhantomData,
             },
             suffix_ext: Some(end),
+            raw_ext,
         });
     }
 
@@ -142,6 +159,7 @@ fn find_match_files_from_regex_path(
     let mut matches: Vec<DirEntry> = Vec::new();
 
     for entry in std::fs::read_dir(base_directory).map_err(Error::Io)? {
+        trace!("Entry: {:?}", entry);
         let entry = entry?;
         let metadata = entry.metadata()?;
         let filename = entry.file_name().into_string().unwrap_or_default();
@@ -208,6 +226,7 @@ mod regex_filename {
                 _phantom: std::marker::PhantomData,
             },
             suffix_ext: Some(".csv"),
+            raw_ext: Some(".csv"),
         };
 
         let matches =

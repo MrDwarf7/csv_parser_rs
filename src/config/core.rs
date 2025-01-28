@@ -233,7 +233,13 @@ impl TryFrom<Cli> for Config {
             builder = builder.add_source(config::File::from(config_file));
         }
 
-        let config = builder.build().map_err(Error::ConfigParse)?;
+        let config = match builder.build() {
+            Ok(c) => c,
+            Err(e) => {
+                error!("\n{}", NO_CONFIG_FILE_MSG);
+                return Err(Error::ConfigParse(e));
+            }
+        };
 
         let fixed = fix_multiple_path_subs(&config, vec!["source", "output_path"]).unwrap_or_else(|e| {
             match e {
@@ -243,13 +249,16 @@ impl TryFrom<Cli> for Config {
             vec![]
         });
 
-        let fixed_source = fixed.first().unwrap();
-        let fixed_output_path = fixed.get(1).unwrap();
+        let fixed_source = fixed.to_owned().first().unwrap().clone();
+        let fixed_output_path = fixed.get(1).unwrap_or(&PathBuf::from("output.csv")).clone();
+
+        debug!("Fixed source: {:#?}", fixed_source);
+        debug!("Fixed output path: {:#?}", fixed_output_path);
 
         let mut config: Config = config.try_deserialize().expect("Failed to deserialize config");
 
-        config.source.clone_from(fixed_source);
-        config.output_path.clone_from(fixed_output_path);
+        config.source.clone_from(&fixed_source);
+        config.output_path.clone_from(&fixed_output_path);
 
         config = clear_placeholder_keys(config);
 
@@ -258,18 +267,21 @@ impl TryFrom<Cli> for Config {
 }
 
 #[allow(unused_assignments, clippy::redundant_else, clippy::manual_let_else)]
-fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<Vec<PathBuf>> {
+fn fix_multiple_path_subs(config: &config::Config, keys: Vec<&str>) -> Result<Vec<PathBuf>> {
     let mut extracted = vec![];
 
     let mut last_path: Box<&str> = Box::default();
-    for path in paths {
+    for path in keys {
         last_path = Box::new(path);
         debug!("Attempting to extract path: {}", path);
 
         let extracted_path = extract_cached_config_value(config, path)?;
+        debug!("Extracted path: {}", extracted_path);
         let fixed_path = match parse_user_variable_path(&extracted_path) {
             Ok(f) => f,
             Err(_) => {
+                trace!("LAST PATH: {}", last_path);
+                trace!("CURRENT PATH: {}", path);
                 if *last_path == path {
                     warn!("Failed to extract path: {}", path);
                     let extension_idx = extracted_path.rfind('.');
@@ -289,6 +301,7 @@ fn fix_multiple_path_subs(config: &config::Config, paths: Vec<&str>) -> Result<V
                 }
             }
         };
+        debug!("Fixed path: {:#?}", fixed_path);
         extracted.push(fixed_path);
     }
     Ok(extracted)

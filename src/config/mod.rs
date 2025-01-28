@@ -10,6 +10,7 @@ use config::Value;
 use regex::Regex;
 
 use crate::error::Error;
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 struct UserDefinedRegex<'b> {
@@ -18,6 +19,7 @@ struct UserDefinedRegex<'b> {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct UserDefinedParts<'a, P>
 where
     P: Into<PathBuf>,
@@ -27,6 +29,7 @@ where
     before_regex: &'a str,
     user_regex: UserDefinedRegex<'a>,
     suffix_ext: Option<&'a str>,
+    raw_ext: Option<&'a str>,
 }
 
 #[allow(clippy::unnecessary_wraps)] // TODO: will need to change it over at some point
@@ -62,6 +65,7 @@ pub(crate) fn resolve_if_relative(path: &'_ Path) -> Cow<'_, Path> {
 }
 
 pub fn extract_cached_config_value(config: &config::Config, find_key_for: &str) -> crate::prelude::Result<String> {
+    trace!("Extracting cached config value for: {}", find_key_for);
     let (_key, prov_path) = config
         .cache
         .clone()

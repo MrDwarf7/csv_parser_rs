@@ -122,4 +122,7 @@ pub enum Error {
 
     #[error("Failed to parse path: {0}")]
     ParsingPath(String),
+
+    #[error("Failed to update the application: {0}")]
+    SelfUpdateFailed(#[from] self_update::errors::Error),
 }
