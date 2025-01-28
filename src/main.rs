@@ -7,6 +7,7 @@ pub(crate) mod cli;
 pub(crate) mod config;
 pub(crate) mod csv_pipeline;
 pub(crate) mod error;
+pub(crate) mod macros;
 pub(crate) mod prelude;
 pub(crate) mod processing;
 pub(crate) mod retained;
@@ -53,14 +54,28 @@ pub fn main() -> Result<()> {
         .show_module_names(true)
         .init();
 
+    match update() {
+        Ok(vers) => {
+            // Only produce output when we actually did something
+            if vers != self_update::cargo_crate_version!() {
+                println!("vers val: {:#?}", vers);
+                println!("cargo pkg vers: {:#?}", self_update::cargo_crate_version!());
+                info!("Update successful. Restarting with new version");
+            }
+        }
+        Err(e) => {
+            debug!("Error updating: {e}");
+            warn!("Update not completed. Continuing with current version");
+        }
+    }
+
     let mut state = State::new(cli)?;
-    info!("MAIN:: Config: {:#?}", &state.config);
+    debug!("MAIN:: Config: {:?}", &state.config);
+    info!("Processing CSV data for: {:?}", state.config.source);
 
     if let Err(proc_err) = state.process() {
         error!("Error processing: {proc_err}");
     }
-
-    info!("Config before finishing: {:#?}", &state.config);
 
     if !state.config.unique_fields.is_empty() || state.config.unique_fields.len().gt(&1) {
         state.deduplicate();

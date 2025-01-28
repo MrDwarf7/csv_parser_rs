@@ -2,6 +2,7 @@ cargo-features = ["codegen-backend"]
 
 [package]
 name = "csv_parser_rs"
+authors = ["MrDwarf7", "Blake B. <github.com/MrDwarf7>"]
 version = "2.1.0"
 edition = "2024"
 description = "Parses CSV's pased on a configuration, and filters out rows based on a set of criteria."
@@ -39,6 +40,7 @@ chrono = "0.4.39"
 
 stderrlog = "0.6.0"
 log = "0.4.22"
+self_update = { version = "0.42.0", features = ["rustls"] }
 
 [dev-dependencies]
 tempdir = "0.3.7"
